@@ -36,3 +36,14 @@ uv venv ai_prod --python cpython-3.10.18
 
 # Activate the created environment
 ai_prod\Scripts\activate
+
+
+
+
+ELT - extract- html parsing - bs4
+             - selenium- browser level content extraction
+             - playwright- other option for selenium
+      load - csv writer
+      transform - langchain doc
+
+store in vectordb- astradb
