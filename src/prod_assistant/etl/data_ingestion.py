@@ -6,6 +6,11 @@ from langchain_core.documents import Document
 from langchain_astradb import AstraDBVectorStore
 from prod_assistant.utils.model_loader import ModelLoader
 from prod_assistant.utils.config_loader import load_config
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+env_path = os.path.join(project_root, ".env")
+
+print(f"Loading .env from: {env_path}")
+load_dotenv(dotenv_path=env_path)
 
 class DataIngestion:
     """
@@ -27,7 +32,7 @@ class DataIngestion:
         """
         Load and validate required environment variables.
         """
-        load_dotenv()
+        
         
         required_vars = ["GOOGLE_API_KEY", "ASTRA_DB_API_ENDPOINT", "ASTRA_DB_APPLICATION_TOKEN", "ASTRA_DB_KEYSPACE"]
         

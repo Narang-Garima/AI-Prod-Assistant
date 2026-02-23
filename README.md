@@ -32,10 +32,10 @@ uv activate cpython-3.10.18
 uv pip install --upgrade pip setuptools wheel
 
 # Create a new uv virtual environment using Python 3.10.18
-uv venv ai_prod --python cpython-3.10.18
+uv venv venv --python cpython-3.10.18
 
 # Activate the created environment
-ai_prod\Scripts\activate
+venv\Scripts\activate
 
 
 
