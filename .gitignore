@@ -11,6 +11,10 @@ wheels/
 .env
 
 src_experiment/
+logs/
+scripts/
+debug*
+scrapper_ui*.py
 
 notebook/
 google_cred/
