@@ -1,0 +1,8 @@
+{"timestamp": "2026-02-25T18:59:31.455229Z", "level": "info", "event": "OPENAI_API_KEY loaded from environment"}
+{"timestamp": "2026-02-25T18:59:31.455874Z", "level": "info", "event": "GOOGLE_API_KEY loaded from environment"}
+{"timestamp": "2026-02-25T18:59:31.456403Z", "level": "info", "event": "GROQ_API_KEY loaded from environment"}
+{"timestamp": "2026-02-25T18:59:31.456403Z", "level": "info", "event": "ASTRA_DB_API_ENDPOINT loaded from environment"}
+{"timestamp": "2026-02-25T18:59:31.456403Z", "level": "info", "event": "ASTRA_DB_APPLICATION_TOKEN loaded from environment"}
+{"timestamp": "2026-02-25T18:59:31.456403Z", "level": "info", "event": "ASTRA_DB_KEYSPACE loaded from environment"}
+{"config_keys": ["astra_db", "embedding_model", "retriever", "llm"], "timestamp": "2026-02-25T18:59:31.458467Z", "level": "info", "event": "YAML config loaded"}
+{"model": "gemini-embedding-001", "timestamp": "2026-02-25T18:59:31.459465Z", "level": "info", "event": "Loading embedding model"}

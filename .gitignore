@@ -10,4 +10,10 @@ wheels/
 .venv
 .env
 
+src_experiment/
+
 notebook/
+google_cred/
+*.md
+uv.lock
+

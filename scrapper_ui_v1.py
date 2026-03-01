@@ -1,8 +1,9 @@
 
 import streamlit as st
-from prod_assistant.etl.data_scrapper_uc import FlipkartScraper
+from prod_assistant.etl.data_scrapper_v1_v1 import FlipkartScraper
 from prod_assistant.etl.data_ingestion_working import DataIngestion
 import os
+import asyncio
 
 flipkart_scraper = FlipkartScraper()
 output_path = "data/product_reviews.csv"
@@ -40,7 +41,9 @@ if st.button("🚀 Start Scraping"):
         final_data = []
         for query in product_inputs:
             st.write(f"🔍 Searching for: {query}")
-            results = flipkart_scraper.scrape_flipkart_products(query, max_products=max_products, review_count=review_count)
+            #results = flipkart_scraper.scrape_flipkart_products(query, max_products=max_products, review_count=review_count)
+            results = asyncio.run(flipkart_scraper.scrape_flipkart_products(query, max_products=max_products, review_count=review_count))
+
             final_data.extend(results)
 
         unique_products = {}

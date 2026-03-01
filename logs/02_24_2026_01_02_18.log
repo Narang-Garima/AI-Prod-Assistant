@@ -1,0 +1,128 @@
+Task exception was never retrieved
+future: <Task finished name='Task-231' coro=<Connection.run() done, defined at C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py:264> exception=NotImplementedError()>
+Traceback (most recent call last):
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py", line 271, in run
+    await self._transport.connect()
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 127, in connect
+    raise exc
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 116, in connect
+    self._proc = await asyncio.create_subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\subprocess.py", line 218, in create_subprocess_exec
+    transport, protocol = await loop.subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 1681, in subprocess_exec
+    transport = await self._make_subprocess_transport(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 498, in _make_subprocess_transport
+    raise NotImplementedError
+NotImplementedError
+Task exception was never retrieved
+future: <Task finished name='Task-240' coro=<Connection.run() done, defined at C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py:264> exception=NotImplementedError()>
+Traceback (most recent call last):
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py", line 271, in run
+    await self._transport.connect()
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 127, in connect
+    raise exc
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 116, in connect
+    self._proc = await asyncio.create_subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\subprocess.py", line 218, in create_subprocess_exec
+    transport, protocol = await loop.subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 1681, in subprocess_exec
+    transport = await self._make_subprocess_transport(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 498, in _make_subprocess_transport
+    raise NotImplementedError
+NotImplementedError
+Task exception was never retrieved
+future: <Task finished name='Task-346' coro=<Connection.run() done, defined at C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py:264> exception=NotImplementedError()>
+Traceback (most recent call last):
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py", line 271, in run
+    await self._transport.connect()
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 127, in connect
+    raise exc
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 116, in connect
+    self._proc = await asyncio.create_subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\subprocess.py", line 218, in create_subprocess_exec
+    transport, protocol = await loop.subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 1681, in subprocess_exec
+    transport = await self._make_subprocess_transport(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 498, in _make_subprocess_transport
+    raise NotImplementedError
+NotImplementedError
+Task exception was never retrieved
+future: <Task finished name='Task-353' coro=<Connection.run() done, defined at C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py:264> exception=NotImplementedError()>
+Traceback (most recent call last):
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py", line 271, in run
+    await self._transport.connect()
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 127, in connect
+    raise exc
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 116, in connect
+    self._proc = await asyncio.create_subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\subprocess.py", line 218, in create_subprocess_exec
+    transport, protocol = await loop.subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 1681, in subprocess_exec
+    transport = await self._make_subprocess_transport(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 498, in _make_subprocess_transport
+    raise NotImplementedError
+NotImplementedError
+Task exception was never retrieved
+future: <Task finished name='Task-517' coro=<Connection.run() done, defined at C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py:264> exception=NotImplementedError()>
+Traceback (most recent call last):
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py", line 271, in run
+    await self._transport.connect()
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 127, in connect
+    raise exc
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 116, in connect
+    self._proc = await asyncio.create_subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\subprocess.py", line 218, in create_subprocess_exec
+    transport, protocol = await loop.subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 1681, in subprocess_exec
+    transport = await self._make_subprocess_transport(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 498, in _make_subprocess_transport
+    raise NotImplementedError
+NotImplementedError
+Task exception was never retrieved
+future: <Task finished name='Task-622' coro=<Connection.run() done, defined at C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py:264> exception=NotImplementedError()>
+Traceback (most recent call last):
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py", line 271, in run
+    await self._transport.connect()
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 127, in connect
+    raise exc
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 116, in connect
+    self._proc = await asyncio.create_subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\subprocess.py", line 218, in create_subprocess_exec
+    transport, protocol = await loop.subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 1681, in subprocess_exec
+    transport = await self._make_subprocess_transport(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 498, in _make_subprocess_transport
+    raise NotImplementedError
+NotImplementedError
+Task exception was never retrieved
+future: <Task finished name='Task-672' coro=<Connection.run() done, defined at C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py:264> exception=NotImplementedError()>
+Traceback (most recent call last):
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py", line 271, in run
+    await self._transport.connect()
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 127, in connect
+    raise exc
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 116, in connect
+    self._proc = await asyncio.create_subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\subprocess.py", line 218, in create_subprocess_exec
+    transport, protocol = await loop.subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 1681, in subprocess_exec
+    transport = await self._make_subprocess_transport(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 498, in _make_subprocess_transport
+    raise NotImplementedError
+NotImplementedError
+Task exception was never retrieved
+future: <Task finished name='Task-806' coro=<Connection.run() done, defined at C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py:264> exception=NotImplementedError()>
+Traceback (most recent call last):
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_connection.py", line 271, in run
+    await self._transport.connect()
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 127, in connect
+    raise exc
+  File "C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\venv\lib\site-packages\playwright\_impl\_transport.py", line 116, in connect
+    self._proc = await asyncio.create_subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\subprocess.py", line 218, in create_subprocess_exec
+    transport, protocol = await loop.subprocess_exec(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 1681, in subprocess_exec
+    transport = await self._make_subprocess_transport(
+  File "C:\Users\KrishnaDasaNuDasi\AppData\Roaming\uv\python\cpython-3.10.18-windows-x86_64-none\lib\asyncio\base_events.py", line 498, in _make_subprocess_transport
+    raise NotImplementedError
+NotImplementedError
