@@ -28,3 +28,16 @@ llm:
      provider: "openai"
      model_name: "gpt-4o"
      temperature: 0
+
+
+agentic_rag:
+  max_rewrites: 2
+  recursion_limit: 25
+  fallback_enabled: true
+  routing_keywords:
+    - price
+    - review
+    - rating
+    - product
+    - phone
+    - iphone
