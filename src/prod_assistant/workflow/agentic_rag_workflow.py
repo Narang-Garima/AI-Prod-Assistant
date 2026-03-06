@@ -41,7 +41,7 @@ class AgenticRAG:
         # keywords used to decide if we should call retriever
         self.routing_keywords = agent_cfg.get(
             "routing_keywords",
-            ["price", "review", "rating", "product", "phone", "iphone", "recommend", "suggest"],
+            ["price", "review", "rating", "product", "recommend", "suggest"],
         )
 
         # grader prompt (optional override)
@@ -113,9 +113,24 @@ class AgenticRAG:
     def _assistant(self, state: AgentState):
         print("--- CALL ASSISTANT ---")
         user_text = (state["messages"][-1].content or "").strip().lower()
+        
+        # print("\n===== DEBUG START =====")
+        # print("routing_keywords =", self.routing_keywords)
+        # print("index + value =", [(i, k) for i, k in enumerate(self.routing_keywords)])
+        # print("None items =", [i for i, k in enumerate(self.routing_keywords) if k is None])
+        # print("user_text =", user_text, type(user_text))
+        # print("===== DEBUG END =====\n")
 
-        # route to retriever if any routing keyword present
-        if any(k.lower() in user_text for k in self.routing_keywords):
+        # # route to retriever if any routing keyword present
+        # if any(k.lower() in user_text for k in self.routing_keywords):
+        #     return {"messages": [AIMessage(content="TOOL: retriever")]}
+
+        # ---- RAG-FIRST SEMANTIC ROUTING ----
+        retriever = self.retriever_obj.load_retriever()
+        docs = retriever.invoke(user_text)
+
+        # If retriever finds any matching docs, send to RAG
+        if docs and len(docs) > 0:
             return {"messages": [AIMessage(content="TOOL: retriever")]}
 
         prompt = ChatPromptTemplate.from_template(self.direct_answer_prompt)
@@ -230,8 +245,6 @@ class AgenticRAG:
 if __name__ == "__main__":
     rag_agent = AgenticRAG()
 
-    # Try queries that exist in your DB (from earlier logs):
-    # print(rag_agent.run("mini supercomputer phone"))
-    # print(rag_agent.run("IQOO Neo9 Pro gaming phone review"))
-
-    print("\nFinal Answer:\n", rag_agent.run("What is the price of iPhone 16?"))
+    #print("\nFinal Answer:\n", rag_agent.run("Can you suggest any sunscreen for women specially for sensitive skin?"))
+    print("\nFinal Answer:\n", rag_agent.run("“Summarize reviews for google pixel and recommend which is best among iphone 15, 17 and google with respect to new AI .”"))
+    #print("\nFinal Answer:\n", rag_agent.run("“Write a love poem about the moon.”"))

@@ -21,3 +21,11 @@ google_cred/
 *.md
 uv.lock
 
+data_scrapper_ss.py
+data_scrapper_multi.py
+data_scrapper.py
+
+data/
+
+
+

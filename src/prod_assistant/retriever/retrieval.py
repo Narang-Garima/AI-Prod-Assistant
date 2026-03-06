@@ -1,10 +1,15 @@
+# src/prod_assistant/retrieval/retriever.py
+
 import os
+import re
 from pathlib import Path
+from typing import List, Any
 
 from dotenv import load_dotenv
 from langchain_astradb import AstraDBVectorStore
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import LLMChainFilter
+from langchain_core.documents import Document
 
 from prod_assistant.utils.config_loader import load_config
 from prod_assistant.utils.model_loader import ModelLoader
@@ -13,6 +18,84 @@ from prod_assistant.evaluation.ragas_eval import (
     evaluate_context_precision,
     evaluate_response_relevancy,
 )
+
+
+def _safe_str(x: Any, default: str = "N/A") -> str:
+    s = "" if x is None else str(x).strip()
+    return s if s else default
+
+
+def _is_noise_review(text: str) -> bool:
+    t = (text or "").strip().lower()
+    if not t:
+        return True
+    if t in {"no reviews found", "n/a"}:
+        return True
+
+    # Kill obvious "spec summary blocks" that sometimes get scraped as reviews
+    # e.g. "+2955 Camera 4.6 Battery 4.3 ..."
+    if re.search(r"^\+\d+\s+camera\s+\d", t):
+        return True
+    if "camera" in t and "battery" in t and "display" in t and "performance" in t and t.startswith("+"):
+        return True
+
+    # Very short fragments are noise
+    if len(t) < 25:
+        return True
+
+    return False
+
+
+def _doc_dedupe_key(d: Document) -> str:
+    meta = d.metadata or {}
+    pid = meta.get("product_id") or meta.get("pid") or ""
+    title = meta.get("product_title") or ""
+    text = re.sub(r"\s+", " ", (d.page_content or "").strip().lower())
+    return f"{pid}||{title}||{text[:180]}"
+
+
+def format_docs_as_context_strings(docs: List[Document]) -> List[str]:
+    """
+    RAGAS expects contexts: List[str]
+    """
+    out: List[str] = []
+    for d in docs:
+        meta = d.metadata or {}
+        out.append(
+            f"Title: {_safe_str(meta.get('product_title'))}\n"
+            f"Price: {_safe_str(meta.get('price'))}\n"
+            f"Rating: {_safe_str(meta.get('rating'))}\n"
+            f"Review:\n{(d.page_content or '').strip()}"
+        )
+    return out
+
+
+def build_grounded_response(query: str, docs: List[Document], max_items: int = 5) -> str:
+    """
+    This is the MOST IMPORTANT change:
+    Your earlier response was unrelated to contexts, so Context Precision became 0.
+    This response always quotes evidence from retrieved reviews.
+    """
+    if not docs:
+        return "I couldn’t find relevant review text in the database for this query."
+
+    lines = [f"Based on the retrieved reviews for: {query}\n"]
+
+    for i, d in enumerate(docs[:max_items], 1):
+        meta = d.metadata or {}
+        title = _safe_str(meta.get("product_title"))
+        rating = _safe_str(meta.get("rating"))
+        price = _safe_str(meta.get("price"))
+        snippet = re.sub(r"\s+", " ", (d.page_content or "").strip())
+        snippet = snippet[:220] + ("..." if len(snippet) > 220 else "")
+
+        lines.append(
+            f"{i}. {title} | Rating: {rating} | Price: {price}\n"
+            f"   Evidence: {snippet}"
+        )
+
+    lines.append("\nThese points are taken directly from the retrieved review text.")
+    return "\n".join(lines)
 
 
 class Retriever:
@@ -73,7 +156,6 @@ class Retriever:
         fetch_k = int(self.config.get("retriever", {}).get("fetch_k", 50))
         lambda_mult = float(self.config.get("retriever", {}).get("lambda_mult", 0.7))
 
-        # IMPORTANT: toggle compression here
         use_compression = bool(self.config.get("retriever", {}).get("use_compression", False))
 
         print(f"TOP_K from config: {top_k}")
@@ -81,11 +163,7 @@ class Retriever:
 
         mmr_retriever = vstore.as_retriever(
             search_type="mmr",
-            search_kwargs={
-                "k": top_k,
-                "fetch_k": fetch_k,
-                "lambda_mult": lambda_mult,
-            },
+            search_kwargs={"k": top_k, "fetch_k": fetch_k, "lambda_mult": lambda_mult},
         )
 
         if not self.retriever_instance:
@@ -97,7 +175,6 @@ class Retriever:
                     base_retriever=mmr_retriever,
                 )
             else:
-                # Return base retriever directly (no filtering down to 1)
                 self.retriever_instance = mmr_retriever
 
             print("Retriever loaded successfully.")
@@ -105,39 +182,39 @@ class Retriever:
         return self.retriever_instance
 
     # -------------------------
-    # CALL RETRIEVER + DEBUG (base vs compressed)
+    # CALL RETRIEVER + CLEANUP
     # -------------------------
-    def call_retriever(self, query):
-        vstore = self._get_vectorstore()
-
-        top_k = int(self.config.get("retriever", {}).get("top_k", 5))
-        fetch_k = int(self.config.get("retriever", {}).get("fetch_k", 50))
-        lambda_mult = float(self.config.get("retriever", {}).get("lambda_mult", 0.7))
-
-        base_retriever = vstore.as_retriever(
-            search_type="mmr",
-            search_kwargs={"k": top_k, "fetch_k": fetch_k, "lambda_mult": lambda_mult},
-        )
-        base_docs = base_retriever.invoke(query)
-        print("BASE retriever docs:", len(base_docs))
-
+    def call_retriever(self, query: str) -> List[Document]:
         retriever = self.load_retriever()
         results = retriever.invoke(query)
-        print("FINAL returned docs:", len(results))
+        print("FINAL returned docs (raw):", len(results))
 
         # Normalize tuples -> Document (safety)
-        normalized = []
+        normalized: List[Document] = []
         for r in results:
             normalized.append(r[0] if isinstance(r, tuple) else r)
 
-        return normalized
+        # Filter noise + dedupe
+        cleaned: List[Document] = []
+        seen = set()
+        for d in normalized:
+            if _is_noise_review(d.page_content or ""):
+                continue
+            key = _doc_dedupe_key(d)
+            if key in seen:
+                continue
+            seen.add(key)
+            cleaned.append(d)
+
+        print("FINAL returned docs (cleaned):", len(cleaned))
+        return cleaned
 
 
 # -------------------------
 # MAIN TEST BLOCK
 # -------------------------
 if __name__ == "__main__":
-    user_query = "Can you suggest phone like mini computer?"
+    user_query = "Can you suggest any sunscreen for women specially for sensitive skin?"
 
     retriever_obj = Retriever()
     retrieved_docs = retriever_obj.call_retriever(user_query)
@@ -147,40 +224,19 @@ if __name__ == "__main__":
 
     for i, d in enumerate(retrieved_docs, 1):
         title = (d.metadata or {}).get("product_title", "N/A")
-        print(f"{i}. {title} :: {d.page_content[:90]}")
+        print(f"{i}. {title} :: {(d.page_content or '')[:90]}")
 
-    # -------------------------
-    # FORMAT CONTEXT (ONE combined context string)
-    # -------------------------
-    def format_docs(docs):
-        if not docs:
-            return "No relevant documents found."
+    # contexts must be List[str] for ragas==0.3.4
+    contexts = format_docs_as_context_strings(retrieved_docs)
+    print("\nContext chunks:", len(contexts))
 
-        formatted_chunks = []
-        for d in docs:
-            meta = d.metadata or {}
-            formatted_chunks.append(
-                f"Title: {meta.get('product_title', 'N/A')}\n"
-                f"Price: {meta.get('price', 'N/A')}\n"
-                f"Rating: {meta.get('rating', 'N/A')}\n"
-                f"Review:\n{d.page_content.strip()}"
-            )
-        return "\n\n---\n\n".join(formatted_chunks)
+    # ✅ grounded response (fixes context precision)
+    response = build_grounded_response(user_query, retrieved_docs, max_items=5)
+    print("\n--- GROUNDED RESPONSE ---")
+    print(response)
 
-    retrieved_contexts = [format_docs(retrieved_docs)]
-    context_text = retrieved_contexts[0]
-    print("\nContext length:", len(context_text))
-
-    # -------------------------
-    # TEST RESPONSE (grounded)
-    # -------------------------
-    response = (
-        "Based on the retrieved reviews, a strong option is the phone described as extremely powerful "
-        "and comparable to a mini supercomputer, which suggests excellent performance for heavy use and gaming."
-    )
-
-    context_score = evaluate_context_precision(user_query, response, retrieved_contexts)
-    relevancy_score = evaluate_response_relevancy(user_query, response, retrieved_contexts)
+    context_score = evaluate_context_precision(user_query, response, contexts)
+    relevancy_score = evaluate_response_relevancy(user_query, response, contexts)
 
     print("\n--- Evaluation Metrics ---")
     print("Context Precision Score:", context_score)

@@ -35,9 +35,11 @@ agentic_rag:
   recursion_limit: 25
   fallback_enabled: true
   routing_keywords:
-    - price
     - review
     - rating
+    - compare
+    - recommend
+    - best
+    - vs
+    - price
     - product
-    - phone
-    - iphone
