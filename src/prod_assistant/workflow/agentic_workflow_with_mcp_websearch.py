@@ -64,7 +64,7 @@ class AgenticRAG:
 
         if rewrite_count > 0 or any(
             word in last_message.lower()
-            for word in ["price", "review", "product", "iphone", "pixel", "samsung"]
+            for word in ["price", "review", "product", "spec", "specification", "details", "information", "compare", "comparison"]
         ):
             return {"messages": [AIMessage(content="TOOL: retriever")]}
 
