@@ -30,11 +30,17 @@ async def index(request: Request):
 
 
 @app.post("/get")
-async def chat(request: Request, response: Response, msg: str = Form(...)):
-    thread_id = request.cookies.get("thread_id")
+async def chat(
+    request: Request,
+    response: Response,
+    msg: str = Form(...),
+    thread_id: str | None = Form(default=None),
+):
+    if not thread_id:
+        thread_id = request.cookies.get("thread_id")
     if not thread_id:
         thread_id = f"thread-{uuid.uuid4().hex}"
-        response.set_cookie("thread_id", thread_id, httponly=False, samesite="lax")
+    response.set_cookie("thread_id", thread_id, httponly=False, samesite="lax")
     answer = await rag_agent.run(msg, thread_id=thread_id)
     return answer
 

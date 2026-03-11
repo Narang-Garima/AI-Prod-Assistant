@@ -22,6 +22,7 @@ class AgenticRAG:
         messages: Annotated[Sequence[BaseMessage], add_messages]
         rewrite_count: int
         last_mcp_tool: str
+        last_route: str
 
     def __init__(self):
         self.retriever_obj = Retriever()
@@ -52,6 +53,14 @@ class AgenticRAG:
             print(f"Warning: Failed to load MCP tools - {e}")
             self.mcp_tools = []
 
+    async def _get_tool(self, name: str):
+        """Get MCP tool by name with one refresh attempt."""
+        tool = next((t for t in self.mcp_tools if t.name == name), None)
+        if tool:
+            return tool
+        await self._safe_async_init()
+        return next((t for t in self.mcp_tools if t.name == name), None)
+
     def _latest_human_query(self, messages: Sequence[BaseMessage]) -> str:
         for m in reversed(messages):
             if isinstance(m, HumanMessage) and (m.content or "").strip():
@@ -77,13 +86,19 @@ class AgenticRAG:
         print("--- CALL ASSISTANT ---")
         last_message = self._latest_human_query(state["messages"])
         if (last_message or "").strip().lower() in {"hi", "hello", "hey"}:
-            return {"messages": [AIMessage(content="Hello! How can I assist you today?")]}
+            return {
+                "last_route": "direct",
+                "messages": [AIMessage(content="Hello! How can I assist you today?")],
+            }
         if not (last_message or "").strip():
-            return {"messages": [AIMessage(content="Please ask a product-related query.")]}
+            return {
+                "last_route": "direct",
+                "messages": [AIMessage(content="Please ask a product-related query.")],
+            }
         if self._is_memory_query(last_message):
-            return {"messages": [AIMessage(content="TOOL: memory")]}
+            return {"last_route": "memory", "messages": [AIMessage(content="TOOL: memory")]}
         # Policy: always try local vector retrieval first, then fallback to web if needed.
-        return {"messages": [AIMessage(content="TOOL: retriever")]}
+        return {"last_route": "retriever", "messages": [AIMessage(content="TOOL: retriever")]}
 
     def _memory_answer(self, state: AgentState):
         print("--- MEMORY ANSWER ---")
@@ -110,16 +125,17 @@ class AgenticRAG:
         )
         chain = prompt | self.llm | StrOutputParser()
         response = chain.invoke({"transcript": transcript_text, "question": question}) or "I couldn't find that in our conversation."
-        return {"messages": [AIMessage(content=response)]}
+        return {"last_route": "memory", "messages": [AIMessage(content=response)]}
 
     async def _vector_retriever(self, state: AgentState):
         print("--- RETRIEVER (MCP) ---")
         query = self._latest_human_query(state["messages"])
 
-        tool = next((t for t in self.mcp_tools if t.name == "get_product_info"), None)
+        tool = await self._get_tool("get_product_info")
         if not tool:
             return {
                 "last_mcp_tool": "get_product_info (not found)",
+                "last_route": "retriever",
                 "messages": [AIMessage(content="Retriever tool not found in MCP client.")],
             }
 
@@ -129,15 +145,20 @@ class AgenticRAG:
         except Exception as e:
             context = f"Error invoking retriever: {e}"
 
-        return {"last_mcp_tool": "get_product_info", "messages": [AIMessage(content=context)]}
+        return {
+            "last_mcp_tool": "get_product_info",
+            "last_route": "retriever",
+            "messages": [AIMessage(content=context)],
+        }
 
     async def _web_search(self, state: AgentState):
         print("--- WEB SEARCH (MCP) ---")
         query = self._latest_human_query(state["messages"])
-        tool = next((t for t in self.mcp_tools if t.name == "web_search"), None)
+        tool = await self._get_tool("web_search")
         if not tool:
             return {
                 "last_mcp_tool": "web_search (not found)",
+                "last_route": "websearch",
                 "messages": [AIMessage(content="Web search tool not found in MCP client.")],
             }
 
@@ -147,7 +168,11 @@ class AgenticRAG:
         except Exception as e:
             context = f"Error invoking web search: {e}"
 
-        return {"last_mcp_tool": "web_search", "messages": [AIMessage(content=context)]}
+        return {
+            "last_mcp_tool": "web_search",
+            "last_route": "websearch",
+            "messages": [AIMessage(content=context)],
+        }
 
     def _grade_documents(self, state: AgentState) -> Literal["generator", "rewriter", "websearch", "fallback"]:
         print("--- GRADER ---")
@@ -213,6 +238,7 @@ class AgenticRAG:
         print("--- FALLBACK ---")
         question = self._latest_human_query(state["messages"])
         return {
+            "last_route": "fallback",
             "messages": [
                 AIMessage(
                     content=(
@@ -263,11 +289,21 @@ class AgenticRAG:
 
     async def run(self, query: str, thread_id: str = "default_thread") -> str:
         result = await self.app.ainvoke(
-            {"messages": [HumanMessage(content=query)], "rewrite_count": 0, "last_mcp_tool": "none"},
+            {
+                "messages": [HumanMessage(content=query)],
+                "rewrite_count": 0,
+                "last_mcp_tool": "none",
+                "last_route": "none",
+            },
             config={"configurable": {"thread_id": thread_id}, "recursion_limit": 40},
         )
         tool_name = result.get("last_mcp_tool", "none")
-        return f'{result["messages"][-1].content}\n\n[MCP Tool Called: {tool_name}]'
+        route_name = result.get("last_route", "none")
+        return (
+            f'{result["messages"][-1].content}\n\n'
+            f'[MCP Tool Called: {tool_name}]\n'
+            f'[Route: {route_name}]'
+        )
 
 
 if __name__ == "__main__":

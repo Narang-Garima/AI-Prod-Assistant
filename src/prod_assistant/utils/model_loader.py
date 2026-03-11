@@ -79,6 +79,8 @@ class ModelLoader:
     def load_llm(self):
         llm_block = self.config["llm"]
         provider_key = os.getenv("LLM_PROVIDER", "openai")
+        #provider_key = os.getenv("LLM_PROVIDER", "groq")
+
 
         if provider_key not in llm_block:
             log.error("LLM provider not found in config", provider=provider_key)
@@ -125,5 +127,16 @@ class ModelLoader:
         
 
 if __name__ == "__main__":
-    model_loader = ModelLoader()
-    model_loader.load_embeddings()
+    loader = ModelLoader()
+
+    # Test Embedding
+    embeddings = loader.load_embeddings()
+    print(f"Embedding Model Loaded: {embeddings}")
+    result = embeddings.embed_query("Hello, how are you?")
+    #print(f"Embedding Result: {result}")
+
+    # Test LLM
+    llm = loader.load_llm()
+    print(f"LLM Loaded: {llm}")
+    result = llm.invoke("Hello, how are you?")
+    print(f"LLM Result: {result.content}")
