@@ -29,5 +29,5 @@ data/
 generation_workflow.py
 
 mcp_servers/
-C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\src\prod_assistant\workflow\agentic_rag_with_mcp.py
-C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\src\prod_assistant\workflow\agentic_rag_workflow.py
+/src/prod_assistant/workflow/agentic_rag_with_mcp.py
+/src/prod_assistant/workflow/agentic_rag_workflow.py

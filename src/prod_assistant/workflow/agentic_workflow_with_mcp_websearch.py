@@ -1,5 +1,6 @@
 from typing import Annotated, Sequence, TypedDict, Literal
 import asyncio
+import os
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
@@ -33,7 +34,7 @@ class AgenticRAG:
             {
                 "hybrid_search": {
                     "transport": "streamable_http",
-                    "url": "http://localhost:8000/mcp",
+                    "url": os.getenv("MCP_SERVER_URL", "http://127.0.0.1:8001/mcp"),
                 }
             }
         )
@@ -57,22 +58,58 @@ class AgenticRAG:
                 return m.content.strip()
         return (messages[-1].content or "").strip() if messages else ""
 
+    def _is_memory_query(self, text: str) -> bool:
+        t = (text or "").lower().strip()
+        memory_phrases = [
+            "what did i ask",
+            "which reviews i asked",
+            "what did we discuss",
+            "what did you suggest",
+            "earlier",
+            "previous",
+            "last query",
+            "from our chat",
+            "in this conversation",
+        ]
+        return any(p in t for p in memory_phrases)
+
     def _ai_assistant(self, state: AgentState):
         print("--- CALL ASSISTANT ---")
         last_message = self._latest_human_query(state["messages"])
-        rewrite_count = int(state.get("rewrite_count", 0))
+        if (last_message or "").strip().lower() in {"hi", "hello", "hey"}:
+            return {"messages": [AIMessage(content="Hello! How can I assist you today?")]}
+        if not (last_message or "").strip():
+            return {"messages": [AIMessage(content="Please ask a product-related query.")]}
+        if self._is_memory_query(last_message):
+            return {"messages": [AIMessage(content="TOOL: memory")]}
+        # Policy: always try local vector retrieval first, then fallback to web if needed.
+        return {"messages": [AIMessage(content="TOOL: retriever")]}
 
-        if rewrite_count > 0 or any(
-            word in last_message.lower()
-            for word in ["price", "review", "product", "spec", "specification", "details", "information", "compare", "comparison"]
-        ):
-            return {"messages": [AIMessage(content="TOOL: retriever")]}
+    def _memory_answer(self, state: AgentState):
+        print("--- MEMORY ANSWER ---")
+        question = self._latest_human_query(state["messages"])
+
+        transcript = []
+        for m in state["messages"]:
+            content = (m.content or "").strip()
+            if not content:
+                continue
+            if content.startswith("TOOL:"):
+                continue
+            role = "User" if isinstance(m, HumanMessage) else "Assistant"
+            transcript.append(f"{role}: {content}")
+        transcript_text = "\n".join(transcript[-16:])
 
         prompt = ChatPromptTemplate.from_template(
-            "You are a helpful assistant. Answer the user directly.\n\nQuestion: {question}\nAnswer:"
+            "You are a conversational assistant.\n"
+            "Use the prior conversation to answer the user's memory/follow-up question.\n"
+            "If the answer is not in the chat history, say that clearly.\n\n"
+            "Conversation:\n{transcript}\n\n"
+            "Question: {question}\n"
+            "Answer briefly and concretely."
         )
         chain = prompt | self.llm | StrOutputParser()
-        response = chain.invoke({"question": last_message}) or "I'm not sure about that."
+        response = chain.invoke({"transcript": transcript_text, "question": question}) or "I couldn't find that in our conversation."
         return {"messages": [AIMessage(content=response)]}
 
     async def _vector_retriever(self, state: AgentState):
@@ -120,8 +157,10 @@ class AgenticRAG:
 
         if "No local results found." in (docs or ""):
             return "websearch"
+        if "Error invoking retriever:" in (docs or ""):
+            return "websearch"
         if rewrite_count >= self.max_rewrites:
-            return "fallback"
+            return "websearch"
 
         prompt = PromptTemplate(
             template=(
@@ -132,7 +171,10 @@ class AgenticRAG:
         )
         chain = prompt | self.llm | StrOutputParser()
         score = chain.invoke({"question": question, "docs": docs}) or ""
-        return "generator" if "yes" in score.lower() else "rewriter"
+        if "yes" in score.lower():
+            return "generator"
+        # Try one rewrite for retrieval refinement, then move to web search.
+        return "rewriter" if rewrite_count == 0 else "websearch"
 
     def _generate(self, state: AgentState):
         print("--- GENERATE ---")
@@ -184,6 +226,7 @@ class AgenticRAG:
     def _build_workflow(self):
         workflow = StateGraph(self.AgentState)
         workflow.add_node("Assistant", self._ai_assistant)
+        workflow.add_node("Memory", self._memory_answer)
         workflow.add_node("Retriever", self._vector_retriever)
         workflow.add_node("Generator", self._generate)
         workflow.add_node("Rewriter", self._rewrite)
@@ -193,9 +236,14 @@ class AgenticRAG:
         workflow.add_edge(START, "Assistant")
         workflow.add_conditional_edges(
             "Assistant",
-            lambda state: "Retriever" if "TOOL" in state["messages"][-1].content else END,
-            {"Retriever": "Retriever", END: END},
+            lambda state: (
+                "Memory"
+                if "TOOL: memory" in state["messages"][-1].content
+                else ("Retriever" if "TOOL: retriever" in state["messages"][-1].content else END)
+            ),
+            {"Memory": "Memory", "Retriever": "Retriever", END: END},
         )
+        workflow.add_edge("Memory", END)
         workflow.add_conditional_edges(
             "Retriever",
             self._grade_documents,
