@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopBuddy Assistant v1</title>
+    <style>
+        :root {
+            --bg: #f2f6fb;
+            --panel: #ffffff;
+            --sidebar: #0f172a;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #dbe3ee;
+            --bot: #ffffff;
+            --user: #e8f1ff;
+            --accent: #0ea5a6;
+            --accent-2: #0284c7;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            height: 100vh;
+        }
+
+        .sidebar {
+            background: var(--sidebar);
+            color: #fff;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            border-right: 1px solid #242424;
+        }
+
+        .brand {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: #fff;
+        }
+
+        .brand small {
+            display: block;
+            margin-top: 4px;
+            color: #a3a3a3;
+            font-size: 12px;
+            font-weight: 400;
+        }
+
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero-card {
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            background: linear-gradient(160deg, rgba(14, 165, 166, 0.14), rgba(2, 132, 199, 0.12));
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .hero-card img {
+            width: 100%;
+            border-radius: 10px;
+            display: block;
+        }
+
+        .new-chat {
+            border: 1px solid #3a3a3a;
+            background: linear-gradient(135deg, #0ea5a6, #0284c7);
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .new-chat:hover { filter: brightness(1.06); }
+
+        .hint {
+            margin-top: auto;
+            color: #9ca3af;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .topbar {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title-logo {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .title small {
+            margin-left: 8px;
+            color: var(--muted);
+            font-weight: 400;
+        }
+
+        .chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 26px 0;
+        }
+
+        .messages {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .row.user { justify-content: flex-end; }
+
+        .avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex: 0 0 auto;
+            margin-top: 2px;
+        }
+
+        .avatar.bot {
+            background: #0b3a5b;
+            color: #fff;
+        }
+
+        .avatar.user {
+            background: #0ea5a6;
+            color: #fff;
+        }
+
+        .bubble {
+            max-width: min(78ch, 80vw);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px 12px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: var(--bot);
+        }
+
+        .row.user .bubble {
+            background: var(--user);
+            border-color: #c6dafc;
+        }
+
+        .meta {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            padding: 2px 8px;
+        }
+
+        .composer-wrap {
+            border-top: 1px solid var(--border);
+            background: var(--panel);
+            padding: 14px 20px 18px;
+        }
+
+        .composer {
+            max-width: 860px;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 10px;
+            background: #fff;
+        }
+
+        .composer textarea {
+            flex: 1;
+            border: none;
+            resize: none;
+            outline: none;
+            font: inherit;
+            min-height: 24px;
+            max-height: 160px;
+            line-height: 1.45;
+        }
+
+        .send {
+            border: none;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #fff;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .send:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .footer-note {
+            max-width: 860px;
+            margin: 8px auto 0;
+            color: var(--muted);
+            font-size: 12px;
+            padding: 0 4px;
+        }
+
+        @media (max-width: 900px) {
+            .app { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .bubble { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="brand">
+                <img class="brand-logo" src="/static/f6634145-b9d9-4ea1-b5e5-cb705192c6fd.png" alt="ShopBuddy">
+                <div class="brand-text">
+                    ShopBuddy Assistant
+                    <small>QuickCart Help</small>
+                </div>
+            </div>
+            <button id="newChatBtn" class="new-chat">+ New Chat</button>
+            <div class="hero-card">
+                <img src="/static/f6634145-b9d9-4ea1-b5e5-cb705192c6fd.png" alt="ShopBuddy Assistant">
+            </div>
+            <div class="hint">
+                Ask product price, reviews, comparison, and recommendations.
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div class="title-wrap">
+                    <img class="title-logo" src="/static/f6634145-b9d9-4ea1-b5e5-cb705192c6fd.png" alt="ShopBuddy">
+                    <div class="title">ShopBuddy <small id="status">Online</small></div>
+                </div>
+            </header>
+
+            <section class="chat" id="chatScroll">
+                <div class="messages" id="messages"></div>
+            </section>
+
+            <div class="composer-wrap">
+                <form class="composer" id="composerForm">
+                    <textarea id="prompt" name="msg" placeholder="Message ShopBuddy..." rows="1" required></textarea>
+                    <button class="send" id="sendBtn" type="submit" title="Send">↑</button>
+                </form>
+                <div class="footer-note">Copyright 2026 Customer Support System | Need help? garimanarang2407@gmail.com</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const messagesEl = document.getElementById("messages");
+        const chatScrollEl = document.getElementById("chatScroll");
+        const promptEl = document.getElementById("prompt");
+        const formEl = document.getElementById("composerForm");
+        const sendBtnEl = document.getElementById("sendBtn");
+        const newChatBtnEl = document.getElementById("newChatBtn");
+
+        let localThreadId = localStorage.getItem("shopbuddy_thread_id") || null;
+
+        function nowTime() {
+            const d = new Date();
+            const h = d.getHours();
+            const m = String(d.getMinutes()).padStart(2, "0");
+            return `${h}:${m}`;
+        }
+
+        function parseMeta(text) {
+            const lines = (text || "").split("\n").map(s => s.trim());
+            let source = "none";
+            let route = "none";
+            const clean = [];
+            for (const line of lines) {
+                if (line.startsWith("[MCP Tool Called:")) {
+                    source = line.replace("[MCP Tool Called:", "").replace("]", "").trim();
+                } else if (line.startsWith("[Route:")) {
+                    route = line.replace("[Route:", "").replace("]", "").trim();
+                } else {
+                    clean.push(line);
+                }
+            }
+            return { text: clean.join("\n").trim(), source, route };
+        }
+
+        function addMessage(role, text) {
+            const row = document.createElement("div");
+            row.className = `row ${role}`;
+
+            const avatar = document.createElement("div");
+            avatar.className = `avatar ${role}`;
+            avatar.textContent = role === "user" ? "You" : "AI";
+
+            const bubbleWrap = document.createElement("div");
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+
+            if (role === "bot") {
+                const parsed = parseMeta(text);
+                bubble.textContent = parsed.text || text;
+
+                const meta = document.createElement("div");
+                meta.className = "meta";
+                const t = document.createElement("span");
+                t.className = "chip";
+                t.textContent = nowTime();
+                const s = document.createElement("span");
+                s.className = "chip";
+                s.textContent = `Source: ${parsed.source}`;
+                const r = document.createElement("span");
+                r.className = "chip";
+                r.textContent = `Route: ${parsed.route}`;
+                meta.append(t, s, r);
+                bubbleWrap.appendChild(bubble);
+                bubbleWrap.appendChild(meta);
+            } else {
+                bubble.textContent = text;
+                const meta = document.createElement("div");
+                meta.className = "meta";
+                const t = document.createElement("span");
+                t.className = "chip";
+                t.textContent = nowTime();
+                meta.appendChild(t);
+                bubbleWrap.appendChild(bubble);
+                bubbleWrap.appendChild(meta);
+            }
+
+            if (role === "user") {
+                row.appendChild(bubbleWrap);
+                row.appendChild(avatar);
+            } else {
+                row.appendChild(avatar);
+                row.appendChild(bubbleWrap);
+            }
+
+            messagesEl.appendChild(row);
+            chatScrollEl.scrollTop = chatScrollEl.scrollHeight;
+        }
+
+        async function sendMessage(message) {
+            sendBtnEl.disabled = true;
+            try {
+                const body = new URLSearchParams();
+                body.append("msg", message);
+                if (localThreadId) body.append("thread_id", localThreadId);
+
+                const response = await fetch("/get", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: body.toString(),
+                });
+                const text = await response.text();
+                addMessage("bot", text);
+            } catch (err) {
+                addMessage("bot", `Error: ${err}`);
+            } finally {
+                sendBtnEl.disabled = false;
+            }
+        }
+
+        formEl.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const message = promptEl.value.trim();
+            if (!message) return;
+            addMessage("user", message);
+            promptEl.value = "";
+            promptEl.style.height = "24px";
+            await sendMessage(message);
+        });
+
+        promptEl.addEventListener("input", () => {
+            promptEl.style.height = "24px";
+            promptEl.style.height = `${Math.min(promptEl.scrollHeight, 160)}px`;
+        });
+
+        newChatBtnEl.addEventListener("click", () => {
+            localThreadId = `thread-${crypto.randomUUID().replace(/-/g, "")}`;
+            localStorage.setItem("shopbuddy_thread_id", localThreadId);
+            messagesEl.innerHTML = "";
+            addMessage("bot", "Hello! How can I assist you today with your shopping queries?\n\n[MCP Tool Called: none]\n[Route: direct]");
+        });
+
+        if (!localThreadId) {
+            localThreadId = `thread-${crypto.randomUUID().replace(/-/g, "")}`;
+            localStorage.setItem("shopbuddy_thread_id", localThreadId);
+        }
+
+        addMessage("bot", "Hello! How can I assist you today with your shopping queries?\n\n[MCP Tool Called: none]\n[Route: direct]");
+    </script>
+</body>
+</html>

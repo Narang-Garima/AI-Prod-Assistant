@@ -28,6 +28,10 @@ rag_agent = AgenticRAG()
 async def index(request: Request):
     return templates.TemplateResponse("chat.html", {"request": request})
 
+@app.get("/v1", response_class=HTMLResponse)
+async def index_v1(request: Request):
+    return templates.TemplateResponse("chat_v1.html", {"request": request})
+
 
 @app.post("/get")
 async def chat(

@@ -20,6 +20,8 @@ notebook/
 google_cred/
 *.md
 uv.lock
+*.tar
+*.tar.gz
 
 data_scrapper_ss.py
 data_scrapper_multi.py
@@ -31,3 +33,6 @@ generation_workflow.py
 mcp_servers/
 /src/prod_assistant/workflow/agentic_rag_with_mcp.py
 /src/prod_assistant/workflow/agentic_rag_workflow.py
+
+*.tar
+*.tar.gz

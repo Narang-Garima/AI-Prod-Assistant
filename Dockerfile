@@ -9,6 +9,9 @@ COPY requirements.txt pyproject.toml README.md ./
 COPY src ./src
 
 RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir --index-url https://pypi.org/simple --retries 10 -r requirements.txt
+
 
 COPY . .
 

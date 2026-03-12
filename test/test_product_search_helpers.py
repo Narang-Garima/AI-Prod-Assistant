@@ -1,0 +1,99 @@
+import asyncio
+import importlib
+import sys
+import types
+from types import SimpleNamespace
+
+
+def _load_product_search_server_with_stubs():
+    class DummyRetriever:
+        def load_retriever(self):
+            class _R:
+                def invoke(self, query):
+                    return []
+
+            return _R()
+
+    async def dummy_relevancy(*args, **kwargs):
+        return 1.0
+
+    class DummyDDG:
+        def run(self, query):
+            return f"web:{query}"
+
+    class DummyMCP:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def tool(self):
+            def decorator(func):
+                return func
+
+            return decorator
+
+        def run(self, *args, **kwargs):
+            return None
+
+    fake_retrieval = types.ModuleType("prod_assistant.retriever.retrieval")
+    fake_retrieval.Retriever = DummyRetriever
+    sys.modules["prod_assistant.retriever.retrieval"] = fake_retrieval
+
+    fake_eval = types.ModuleType("prod_assistant.evaluation.ragas_eval")
+    fake_eval.evaluate_response_relevancy_async = dummy_relevancy
+    sys.modules["prod_assistant.evaluation.ragas_eval"] = fake_eval
+
+    fake_tools = types.ModuleType("langchain_community.tools")
+    fake_tools.DuckDuckGoSearchRun = DummyDDG
+    sys.modules["langchain_community.tools"] = fake_tools
+
+    fake_fastmcp = types.ModuleType("mcp.server.fastmcp")
+    fake_fastmcp.FastMCP = DummyMCP
+    sys.modules["mcp.server.fastmcp"] = fake_fastmcp
+
+    sys.modules.pop("prod_assistant.mcp_servers.product_search_server", None)
+    return importlib.import_module("prod_assistant.mcp_servers.product_search_server")
+
+
+def test_tokenize_splits_alnum_terms():
+    mod = _load_product_search_server_with_stubs()
+    tokens = mod._tokenize("price of iphone17 in india")
+    assert "iphone17" in tokens
+    assert "iphone" in tokens
+    assert "17" in tokens
+
+
+def test_overlap_ratio_detects_query_context_intersection():
+    mod = _load_product_search_server_with_stubs()
+    ratio = mod._overlap_ratio("google pixel 10 price", "Pixel 10 costs INR 52,999")
+    assert ratio > 0
+
+
+def test_format_docs_groups_and_dedupes_reviews():
+    mod = _load_product_search_server_with_stubs()
+    docs = [
+        SimpleNamespace(
+            page_content="Great camera and battery",
+            metadata={"product_id": "P1", "product_title": "Phone A", "price": "100", "rating": "4.5"},
+        ),
+        SimpleNamespace(
+            page_content="Great camera and battery",
+            metadata={"product_id": "P1", "product_title": "Phone A", "price": "100", "rating": "4.5"},
+        ),
+    ]
+    out = mod.format_docs(docs)
+    assert "Product ID: P1" in out
+    assert out.count("Great camera and battery") == 1
+
+
+def test_get_product_info_returns_no_local_when_no_docs():
+    mod = _load_product_search_server_with_stubs()
+    mod.retriever.invoke = lambda q: []
+    result = asyncio.run(mod.get_product_info("price of phone"))
+    assert result == "No local results found."
+
+
+def test_web_search_uses_duckduckgo_stub():
+    mod = _load_product_search_server_with_stubs()
+    result = asyncio.run(mod.web_search("asus vivobook reviews"))
+    assert result == "web:asus vivobook reviews"
+
