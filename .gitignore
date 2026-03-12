@@ -30,7 +30,6 @@ data_scrapper.py
 data/
 generation_workflow.py
 
-mcp_servers/
 /src/prod_assistant/workflow/agentic_rag_with_mcp.py
 /src/prod_assistant/workflow/agentic_rag_workflow.py
 
