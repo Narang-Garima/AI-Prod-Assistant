@@ -1,6 +1,7 @@
 from typing import Annotated, Sequence, TypedDict, Literal
 import asyncio
 import os
+import re
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
@@ -69,6 +70,17 @@ class AgenticRAG:
 
     def _previous_human_query(self, messages: Sequence[BaseMessage]) -> str:
         found_latest = False
+        low_signal_turns = {
+            "hi",
+            "hello",
+            "hey",
+            "ok",
+            "okay",
+            "yes",
+            "no",
+            "thanks",
+            "thank you",
+        }
         for m in reversed(messages):
             if not isinstance(m, HumanMessage):
                 continue
@@ -78,12 +90,17 @@ class AgenticRAG:
             if not found_latest:
                 found_latest = True
                 continue
+            if content.lower() in low_signal_turns:
+                continue
             return content
         return ""
 
     def _is_followup_query(self, text: str) -> bool:
         t = (text or "").lower().strip()
         followup_markers = [
+            "it",
+            "this",
+            "that",
             "both",
             "them",
             "that one",
@@ -93,7 +110,28 @@ class AgenticRAG:
             "above mentioned",
             "previously mentioned",
         ]
-        return any(marker in t for marker in followup_markers)
+        if any(marker in t for marker in followup_markers):
+            return True
+
+        # Handle short deictic follow-ups such as "price for it?" or "reviews for that"
+        # without relying on brittle product-specific keywords.
+        tokens = set(re.findall(r"[a-z0-9]+", t))
+        pronouns = {"it", "that", "this", "them", "those", "these", "one"}
+        intent_words = {
+            "price",
+            "cost",
+            "review",
+            "reviews",
+            "rating",
+            "compare",
+            "comparison",
+            "camera",
+            "battery",
+            "performance",
+            "features",
+        }
+        is_short_query = len(tokens) <= 8
+        return is_short_query and bool(tokens & pronouns) and bool(tokens & intent_words)
 
     def _expand_with_previous_context(self, state: AgentState, query: str) -> str:
         if not self._is_followup_query(query):

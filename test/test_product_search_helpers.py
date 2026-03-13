@@ -97,3 +97,14 @@ def test_web_search_uses_duckduckgo_stub():
     result = asyncio.run(mod.web_search("asus vivobook reviews"))
     assert result == "web:asus vivobook reviews"
 
+
+def test_filter_product_blocks_prefers_query_matching_product():
+    mod = _load_product_search_server_with_stubs()
+    context = (
+        "Product ID: A1\nTitle: ARTIOS Watercolor Paper\nPrice: ₹390\nRating: 4.5\nMatched Reviews:\n1. Great for watercolor\n\n---\n\n"
+        "Product ID: B2\nTitle: Apple iPhone 17\nPrice: ₹82,900\nRating: 4.6\nMatched Reviews:\n1. Fast performance"
+    )
+    query = "Previous query context: reviews for watercolor paper\nFollow-up query: price for it?"
+    filtered = mod._filter_product_blocks_by_query(query, context)
+    assert "ARTIOS Watercolor Paper" in filtered
+    assert "Apple iPhone 17" not in filtered

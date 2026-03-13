@@ -103,6 +103,28 @@ def _extract_model_markers(text: str) -> set[str]:
     normalized = {re.sub(r"\s+", "", item) for item in spaced + compact}
     return {item for item in normalized if len(item) >= 3}
 
+
+def _filter_product_blocks_by_query(query: str, context: str) -> str:
+    """
+    Keep only the most query-relevant product blocks when retrieval returns mixed products.
+    This helps follow-up queries like "price for it?" stay anchored to prior context.
+    """
+    blocks = [b for b in (context or "").split("\n\n---\n\n") if b.strip()]
+    if len(blocks) <= 1:
+        return context
+
+    scored = [(block, _overlap_ratio(query, block)) for block in blocks]
+    best = max(score for _, score in scored)
+    if best <= 0:
+        return context
+
+    keep_threshold = max(0.08, best * 0.6)
+    kept = [block for block, score in scored if score >= keep_threshold]
+    if not kept:
+        kept = [max(scored, key=lambda x: x[1])[0]]
+
+    return "\n\n---\n\n".join(kept)
+
 # ---------- MCP Tools ----------
 @mcp.tool()
 async def get_product_info(query: str) -> str:
@@ -112,6 +134,8 @@ async def get_product_info(query: str) -> str:
         context = format_docs(docs)
         if not context.strip():
             return "No local results found."
+
+        context = _filter_product_blocks_by_query(query, context)
 
         overlap = _overlap_ratio(query, context)
         if overlap < OVERLAP_THRESHOLD:

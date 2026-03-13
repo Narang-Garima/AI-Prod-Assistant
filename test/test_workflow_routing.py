@@ -66,3 +66,8 @@ def test_grade_documents_goes_websearch_on_rewrite_limit():
     }
     assert agent._grade_documents(state) == "websearch"
 
+
+def test_followup_pronoun_query_is_detected():
+    agent = _build_agent()
+    assert agent._is_followup_query("price for it?") is True
+    assert agent._is_followup_query("reviews for that") is True
