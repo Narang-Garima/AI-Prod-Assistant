@@ -31,7 +31,7 @@
 
         .app {
             display: grid;
-            grid-template-columns: 280px 1fr;
+            grid-template-columns: 310px 1fr;
             height: 100vh;
         }
 
@@ -101,17 +101,85 @@
 
         .new-chat:hover { filter: brightness(1.06); }
 
-        .hint {
-            margin-top: auto;
-            color: #9ca3af;
+        .history-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .history-title {
+            color: #cbd5e1;
             font-size: 12px;
-            line-height: 1.4;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .thread-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .thread-item {
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            background: rgba(15, 23, 42, 0.35);
+            border-radius: 10px;
+            padding: 8px 9px;
+            color: #e2e8f0;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .thread-item:hover {
+            border-color: rgba(56, 189, 248, 0.45);
+            background: rgba(2, 132, 199, 0.22);
+        }
+
+        .thread-item.active {
+            border-color: rgba(14, 165, 166, 0.65);
+            background: rgba(14, 165, 166, 0.2);
+        }
+
+        .thread-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        .thread-meta {
+            display: block;
+            margin-top: 3px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .hint {
+            color: #dbeafe;
+            font-size: 18px;
+            line-height: 1.5;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .sidebar-footer {
+            color: #94a3b8;
+            font-size: 12px;
+            line-height: 1.5;
+            border-top: 1px solid rgba(148, 163, 184, 0.25);
+            padding-top: 10px;
         }
 
         .main {
             display: flex;
             flex-direction: column;
             min-width: 0;
+            min-height: 0;
         }
 
         .topbar {
@@ -152,6 +220,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 26px 0;
+            min-height: 0;
         }
 
         .messages {
@@ -238,7 +307,7 @@
             gap: 10px;
             border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 10px;
+            padding: 12px;
             background: #fff;
         }
 
@@ -248,7 +317,7 @@
             resize: none;
             outline: none;
             font: inherit;
-            min-height: 24px;
+            min-height: 34px;
             max-height: 160px;
             line-height: 1.45;
         }
@@ -269,14 +338,6 @@
             cursor: not-allowed;
         }
 
-        .footer-note {
-            max-width: 860px;
-            margin: 8px auto 0;
-            color: var(--muted);
-            font-size: 12px;
-            padding: 0 4px;
-        }
-
         @media (max-width: 900px) {
             .app { grid-template-columns: 1fr; }
             .sidebar { display: none; }
@@ -295,11 +356,21 @@
                 </div>
             </div>
             <button id="newChatBtn" class="new-chat">+ New Chat</button>
+            <div class="history-section">
+                <div class="history-title">Recent Chats</div>
+                <div id="threadList" class="thread-list">
+                    <div class="thread-item"><span class="thread-label">No saved chats yet.</span></div>
+                </div>
+            </div>
             <div class="hero-card">
                 <img src="/static/f6634145-b9d9-4ea1-b5e5-cb705192c6fd.png" alt="ShopBuddy Assistant">
             </div>
             <div class="hint">
                 Ask product price, reviews, comparison, and recommendations.
+            </div>
+            <div class="sidebar-footer">
+                &copy; 2026 Customer Support System<br>
+                Need help? garimanarang2407@gmail.com
             </div>
         </aside>
 
@@ -320,7 +391,6 @@
                     <textarea id="prompt" name="msg" placeholder="Message ShopBuddy..." rows="1" required></textarea>
                     <button class="send" id="sendBtn" type="submit" title="Send">↑</button>
                 </form>
-                <div class="footer-note">Copyright 2026 Customer Support System | Need help? garimanarang2407@gmail.com</div>
             </div>
         </main>
     </div>
@@ -332,6 +402,7 @@
         const formEl = document.getElementById("composerForm");
         const sendBtnEl = document.getElementById("sendBtn");
         const newChatBtnEl = document.getElementById("newChatBtn");
+        const threadListEl = document.getElementById("threadList");
 
         let localThreadId = localStorage.getItem("shopbuddy_thread_id") || null;
 
@@ -343,20 +414,36 @@
         }
 
         function parseMeta(text) {
-            const lines = (text || "").split("\n").map(s => s.trim());
+            const raw = String(text || "");
+            let normalized = raw
+                .replace(/\\r\\n/g, "\n")
+                .replace(/\\n/g, "\n")
+                .replace(/\\"/g, "\"")
+                .trim();
+
+            // Remove wrapping quotes from stringified payloads
+            if (
+                (normalized.startsWith("\"") && normalized.endsWith("\"")) ||
+                (normalized.startsWith("'") && normalized.endsWith("'"))
+            ) {
+                normalized = normalized.slice(1, -1).trim();
+            }
+
             let source = "none";
             let route = "none";
-            const clean = [];
-            for (const line of lines) {
-                if (line.startsWith("[MCP Tool Called:")) {
-                    source = line.replace("[MCP Tool Called:", "").replace("]", "").trim();
-                } else if (line.startsWith("[Route:")) {
-                    route = line.replace("[Route:", "").replace("]", "").trim();
-                } else {
-                    clean.push(line);
-                }
-            }
-            return { text: clean.join("\n").trim(), source, route };
+
+            const sourceMatch = normalized.match(/\[MCP Tool Called:\s*([^\]]+)\]/i);
+            const routeMatch = normalized.match(/\[Route:\s*([^\]]+)\]/i);
+            if (sourceMatch) source = sourceMatch[1].trim();
+            if (routeMatch) route = routeMatch[1].trim();
+
+            const cleanText = normalized
+                .replace(/\n?\[MCP Tool Called:[^\]]+\]/gi, "")
+                .replace(/\n?\[Route:[^\]]+\]/gi, "")
+                .replace(/\n{3,}/g, "\n\n")
+                .trim();
+
+            return { text: cleanText, source, route };
         }
 
         function addMessage(role, text) {
@@ -382,7 +469,7 @@
                 t.textContent = nowTime();
                 const s = document.createElement("span");
                 s.className = "chip";
-                s.textContent = `Source: ${parsed.source}`;
+                s.textContent = `MCP Tool Called: ${parsed.source}`;
                 const r = document.createElement("span");
                 r.className = "chip";
                 r.textContent = `Route: ${parsed.route}`;
@@ -427,10 +514,81 @@
                 });
                 const text = await response.text();
                 addMessage("bot", text);
+                loadThreads();
             } catch (err) {
                 addMessage("bot", `Error: ${err}`);
             } finally {
                 sendBtnEl.disabled = false;
+            }
+        }
+
+        function renderThreads(threads) {
+            threadListEl.innerHTML = "";
+            if (!threads || !threads.length) {
+                const empty = document.createElement("div");
+                empty.className = "thread-item";
+                empty.innerHTML = '<span class="thread-label">No saved chats yet.</span>';
+                threadListEl.appendChild(empty);
+                return;
+            }
+
+            for (const thread of threads) {
+                const item = document.createElement("button");
+                item.type = "button";
+                item.className = "thread-item";
+                if (thread.thread_id === localThreadId) item.classList.add("active");
+
+                const shortId = String(thread.thread_id || "").replace(/^thread-/, "").slice(0, 10) || "thread";
+                const turns = Number(thread.turns || 0);
+                const when = thread.last_seen ? new Date(thread.last_seen).toLocaleString() : "unknown";
+
+                item.innerHTML =
+                    `<span class="thread-label">thread-${shortId}</span>` +
+                    `<span class="thread-meta">${turns} turns · ${when}</span>`;
+
+                item.addEventListener("click", async () => {
+                    await loadThread(thread.thread_id);
+                });
+                threadListEl.appendChild(item);
+            }
+        }
+
+        async function loadThreads() {
+            try {
+                const response = await fetch("/_history/threads");
+                if (!response.ok) {
+                    throw new Error("history endpoint unavailable");
+                }
+                const threads = await response.json();
+                renderThreads(threads);
+            } catch (error) {
+                threadListEl.innerHTML = "";
+                const note = document.createElement("div");
+                note.className = "thread-item";
+                note.innerHTML = '<span class="thread-label">History unavailable (start proxy on :8010).</span>';
+                threadListEl.appendChild(note);
+            }
+        }
+
+        async function loadThread(threadId) {
+            try {
+                const response = await fetch(`/_history/${encodeURIComponent(threadId)}`);
+                if (!response.ok) {
+                    throw new Error("thread not found");
+                }
+                const turns = await response.json();
+                localThreadId = threadId;
+                localStorage.setItem("shopbuddy_thread_id", localThreadId);
+                messagesEl.innerHTML = "";
+
+                for (const turn of turns) {
+                    if (turn.user_message) addMessage("user", turn.user_message);
+                    if (turn.assistant_message) addMessage("bot", turn.assistant_message);
+                }
+                chatScrollEl.scrollTop = chatScrollEl.scrollHeight;
+                loadThreads();
+            } catch (error) {
+                addMessage("bot", `Unable to load history for this thread: ${error.message}`);
             }
         }
 
@@ -449,11 +607,19 @@
             promptEl.style.height = `${Math.min(promptEl.scrollHeight, 160)}px`;
         });
 
+        promptEl.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                formEl.requestSubmit();
+            }
+        });
+
         newChatBtnEl.addEventListener("click", () => {
             localThreadId = `thread-${crypto.randomUUID().replace(/-/g, "")}`;
             localStorage.setItem("shopbuddy_thread_id", localThreadId);
             messagesEl.innerHTML = "";
             addMessage("bot", "Hello! How can I assist you today with your shopping queries?\n\n[MCP Tool Called: none]\n[Route: direct]");
+            loadThreads();
         });
 
         if (!localThreadId) {
@@ -462,6 +628,7 @@
         }
 
         addMessage("bot", "Hello! How can I assist you today with your shopping queries?\n\n[MCP Tool Called: none]\n[Route: direct]");
+        loadThreads();
     </script>
 </body>
 </html>

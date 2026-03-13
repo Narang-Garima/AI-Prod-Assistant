@@ -23,11 +23,11 @@ def _load_router_with_stubbed_agent():
     return importlib.import_module("prod_assistant.router.main")
 
 
-def test_index_and_v1_routes_return_200():
+def test_index_route_returns_200_and_v1_is_not_exposed():
     router_main = _load_router_with_stubbed_agent()
     client = TestClient(router_main.app)
     assert client.get("/").status_code == 200
-    assert client.get("/v1").status_code == 200
+    assert client.get("/v1").status_code == 404
 
 
 def test_get_endpoint_sets_cookie_and_returns_agent_text():
@@ -38,4 +38,3 @@ def test_get_endpoint_sets_cookie_and_returns_agent_text():
     assert "echo:hello" in response.text
     assert "thread_id" in response.cookies
     assert "[Route: direct]" in response.text
-

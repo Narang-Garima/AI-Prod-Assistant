@@ -67,6 +67,43 @@ class AgenticRAG:
                 return m.content.strip()
         return (messages[-1].content or "").strip() if messages else ""
 
+    def _previous_human_query(self, messages: Sequence[BaseMessage]) -> str:
+        found_latest = False
+        for m in reversed(messages):
+            if not isinstance(m, HumanMessage):
+                continue
+            content = (m.content or "").strip()
+            if not content:
+                continue
+            if not found_latest:
+                found_latest = True
+                continue
+            return content
+        return ""
+
+    def _is_followup_query(self, text: str) -> bool:
+        t = (text or "").lower().strip()
+        followup_markers = [
+            "both",
+            "them",
+            "that one",
+            "those",
+            "same",
+            "about it",
+            "above mentioned",
+            "previously mentioned",
+        ]
+        return any(marker in t for marker in followup_markers)
+
+    def _expand_with_previous_context(self, state: AgentState, query: str) -> str:
+        if not self._is_followup_query(query):
+            return query
+        prev = self._previous_human_query(state["messages"])
+        if not prev:
+            return query
+        # Keep previous entities in scope for follow-up retrieval.
+        return f"Previous query context: {prev}\nFollow-up query: {query}"
+
     def _is_memory_query(self, text: str) -> bool:
         t = (text or "").lower().strip()
         memory_phrases = [
@@ -130,6 +167,7 @@ class AgenticRAG:
     async def _vector_retriever(self, state: AgentState):
         print("--- RETRIEVER (MCP) ---")
         query = self._latest_human_query(state["messages"])
+        effective_query = self._expand_with_previous_context(state, query)
 
         tool = await self._get_tool("get_product_info")
         if not tool:
@@ -140,7 +178,7 @@ class AgenticRAG:
             }
 
         try:
-            result = await tool.ainvoke({"query": query})
+            result = await tool.ainvoke({"query": effective_query})
             context = result or "No relevant product data found."
         except Exception as e:
             context = f"Error invoking retriever: {e}"
@@ -154,6 +192,7 @@ class AgenticRAG:
     async def _web_search(self, state: AgentState):
         print("--- WEB SEARCH (MCP) ---")
         query = self._latest_human_query(state["messages"])
+        effective_query = self._expand_with_previous_context(state, query)
         tool = await self._get_tool("web_search")
         if not tool:
             return {
@@ -163,7 +202,7 @@ class AgenticRAG:
             }
 
         try:
-            result = await tool.ainvoke({"query": query})
+            result = await tool.ainvoke({"query": effective_query})
             context = result if result else "No data from web"
         except Exception as e:
             context = f"Error invoking web search: {e}"

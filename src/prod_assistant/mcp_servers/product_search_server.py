@@ -88,6 +88,21 @@ def _overlap_ratio(query: str, context: str) -> float:
     c = _tokenize(context)
     return len(q & c) / len(q)
 
+
+def _extract_model_markers(text: str) -> set[str]:
+    """
+    Extract likely product model markers from a query/context.
+    Examples:
+    - "s26" -> "s26"
+    - "iphone 17" -> "iphone17"
+    - "pixel10" -> "pixel10"
+    """
+    raw = (text or "").lower()
+    spaced = re.findall(r"\b[a-z]{1,15}\s+\d{1,3}\b", raw)
+    compact = re.findall(r"\b[a-z]{1,15}\d{1,3}\b", raw)
+    normalized = {re.sub(r"\s+", "", item) for item in spaced + compact}
+    return {item for item in normalized if len(item) >= 3}
+
 # ---------- MCP Tools ----------
 @mcp.tool()
 async def get_product_info(query: str) -> str:
@@ -101,6 +116,14 @@ async def get_product_info(query: str) -> str:
         overlap = _overlap_ratio(query, context)
         if overlap < OVERLAP_THRESHOLD:
             return "No local results found."
+
+        # Prevent silent substitution (e.g., user asks S26 and retriever returns S25).
+        query_models = _extract_model_markers(query)
+        if query_models:
+            normalized_context = re.sub(r"\s+", "", context.lower())
+            missing_models = [m for m in query_models if m not in normalized_context]
+            if missing_models:
+                return f"No local results found for exact model(s): {', '.join(missing_models)}."
 
         retrieved_contexts = [chunk for chunk in context.split("\n\n---\n\n") if chunk.strip()]
         relevancy_score = await evaluate_response_relevancy_async(

@@ -35,3 +35,7 @@ generation_workflow.py
 
 *.tar
 *.tar.gz
+
+reports/
+chat.html
+scrape_buddy_powerbi.py
