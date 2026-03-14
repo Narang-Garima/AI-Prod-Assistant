@@ -34,7 +34,7 @@ jobs:
 
       - name: Syntax smoke check
         run: |
-          python -m py_compile scrape_buddy_powerbi.py
+          python -m py_compile scrape_buddy.py
           python -m py_compile src/prod_assistant/router/main.py
           python -m py_compile src/prod_assistant/workflow/agentic_workflow_with_mcp_websearch.py
 
