@@ -63,7 +63,7 @@ if st.button("🚀 Start Scraping"):
             )
 
         else:
-            st.info("🔍 Running single query scraping...")
+            st.info("🔍 Running single query scraping.....")
             scraper = FlipkartScraper(output_dir="data", chrome_version_main=145, headless=False)
 
             final_data = scraper.scrape_flipkart_products(
