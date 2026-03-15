@@ -6,4 +6,3 @@ for package in packages:
         print(f"{package} version: {version}")
     except importlib.metadata.PackageNotFoundError:
         print(f"{package} not found")
-

@@ -19,7 +19,7 @@ spec:
         image: 459497895986.dkr.ecr.us-west-1.amazonaws.com/product-assistant:latest
         ports:
         - containerPort: 8000
-        env:                              
+        env:
         - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:

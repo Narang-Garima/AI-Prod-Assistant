@@ -5,7 +5,7 @@ WORKDIR /app
 # install git
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt pyproject.toml README.md ./
+COPY requirements.txt pyproject.toml ./
 COPY src ./src
 
 RUN pip install --no-cache-dir -r requirements.txt

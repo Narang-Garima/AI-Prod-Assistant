@@ -124,7 +124,7 @@ class ModelLoader:
         else:
             log.error("Unsupported LLM provider", provider=provider)
             raise ValueError(f"Unsupported LLM provider: {provider}")
-        
+
 
 if __name__ == "__main__":
     loader = ModelLoader()

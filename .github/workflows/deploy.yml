@@ -40,7 +40,7 @@ jobs:
         run: |
           echo "IMAGE_TAG=$(date +%s)" >> $GITHUB_ENV
           echo "::set-output name=tag::$(date +%s)"
-      
+
       # Build, tag and push Docker image to ECR
       - name: Build and Push Docker image
         env:
@@ -65,12 +65,12 @@ jobs:
           unzip -q awscliv2.zip
           sudo ./aws/install --update
           aws --version
-    
+
       - name: Print Env Vars
         run: |
           echo "Region: ${{ secrets.AWS_REGION }}"
-          echo "Cluster: ${{ secrets.EKS_CLUSTER_NAME }}"  
-      
+          echo "Cluster: ${{ secrets.EKS_CLUSTER_NAME }}"
+
       # Update kubeconfig
       - name: Update kubeconfig with debug
         run: |
@@ -87,7 +87,7 @@ jobs:
         run: |
           ls -la ~/.kube || true
           cat ~/.kube/config || true
-      
+
       # Create/Update Kubernetes Secret (for API keys)
       - name: Create Kubernetes secret for API keys
         run: |

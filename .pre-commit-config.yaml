@@ -5,9 +5,16 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: ^infra/.*\.ya?ml$
       - id: check-merge-conflict
       - id: mixed-line-ending
         args: ["--fix=lf"]
+
+  - repo: https://github.com/aws-cloudformation/cfn-lint
+    rev: v1.40.4
+    hooks:
+      - id: cfn-lint
+        files: ^infra/.*\.ya?ml$
 
   - repo: local
     hooks:

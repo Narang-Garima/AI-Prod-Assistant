@@ -21,4 +21,3 @@ def test_product_prompt_formats_successfully():
     assert "QUESTION:" in rendered
     assert "sample context" in rendered
     assert "sample question" in rendered
-

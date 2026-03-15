@@ -1,6 +1,6 @@
 from mcp.server.fastmcp import FastMCP #for hosting the MCP server
 
-from prod_assistant.retriever.retrieval import Retriever  
+from prod_assistant.retriever.retrieval import Retriever
 from langchain_community.tools import DuckDuckGoSearchRun
 
 from prod_assistant.evaluation.ragas_eval import evaluate_response_relevancy_async
