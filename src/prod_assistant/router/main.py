@@ -62,18 +62,27 @@ def _parse_source_route(assistant_text: str) -> tuple[str, str]:
 
 
 def _save_turn(thread_id: str, user_message: str, assistant_message: str) -> None:
+    # Make history persistence best-effort so chat responses never fail if DB is unavailable.
+    try:
+        _ensure_db()
+    except Exception:
+        return
+
     source, route = _parse_source_route(assistant_message)
     created_at = datetime.now(timezone.utc).isoformat()
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute(
-            """
-            INSERT INTO chat_turns
-            (thread_id, user_message, assistant_message, source, route, created_at_utc)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (thread_id, user_message, assistant_message, source, route, created_at),
-        )
-        conn.commit()
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute(
+                """
+                INSERT INTO chat_turns
+                (thread_id, user_message, assistant_message, source, route, created_at_utc)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (thread_id, user_message, assistant_message, source, route, created_at),
+            )
+            conn.commit()
+    except Exception:
+        return
 
 
 @app.on_event("startup")
