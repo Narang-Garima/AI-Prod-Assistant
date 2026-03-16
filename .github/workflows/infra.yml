@@ -26,4 +26,7 @@ jobs:
             --stack-name product-assistant-cluster \
             --template-file infra/eks-with-ecr.yaml \
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              ClusterName=product-assistant-cluster-v2 \
+              ECRRepositoryName=product-assistant-v2 \
             --region ${{ secrets.AWS_REGION }}
