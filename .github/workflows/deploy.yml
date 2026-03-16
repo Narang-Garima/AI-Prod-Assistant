@@ -100,6 +100,12 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
       # Deploy manifests
+      - name: Cleanup conflicting literal env vars
+        run: |
+          kubectl set env deployment/product-assistant ASTRA_DB_API_ENDPOINT- || true
+          kubectl set env deployment/product-assistant OPENAI_API_KEY- || true
+          kubectl set env deployment/product-assistant GOOGLE_API_KEY- || true
+
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f k8/deployment.yaml
