@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: product-assistant-service
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
   labels:
     app: product-assistant
 spec:
