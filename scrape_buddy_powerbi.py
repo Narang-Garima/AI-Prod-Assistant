@@ -43,7 +43,7 @@ def append_history_rows(path: str, rows: list, query: str, run_id: str, ts_utc: 
     return len(rows)
 
 
-st.title("Product Review Scraper (Power BI History Mode)")
+st.title("Product Review Scraper")
 st.caption(
     "This app keeps your existing `data/product_reviews.csv` workflow intact for vector ingestion, "
     "and also appends every scrape to `data/product_reviews_history.csv` for dashboard analytics."

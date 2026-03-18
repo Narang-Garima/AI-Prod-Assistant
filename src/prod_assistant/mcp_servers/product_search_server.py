@@ -25,6 +25,25 @@ STOPWORDS = {
     "the", "a", "an", "is", "are", "for", "to", "in", "on", "of", "and", "or",
     "with", "under", "best", "top", "buy", "price", "review", "reviews", "india",
 }
+PARENT_CATEGORY_KEYS = {
+    "phone": {"iphone", "pixel", "galaxy", "phone", "mobile", "oneplus", "vivo", "oppo", "xiaomi", "redmi"},
+    "laptop": {"laptop", "macbook", "notebook", "vivobook", "victus", "pavilion", "thinkpad"},
+    "audio": {"airpods", "earbuds", "headset", "earphone", "tws", "buds"},
+    "watch": {"watch", "smartwatch", "fit", "band", "wearable"},
+    "gaming": {"playstation", "ps5", "xbox", "controller", "gaming"},
+    "tv": {"tv", "oled", "smart tv"},
+    "home": {"vacuum", "cleaner", "lamp", "air fryer", "home"},
+    "kids art": {"kids", "art", "color", "crayon", "paint", "craft"},
+    "beauty": {"sunscreen", "spf", "cream", "serum", "face wash", "moisturizer"},
+}
+
+
+def _map_parent_from_source_query(raw_category: str) -> str:
+    cat = (raw_category or "").strip().lower()
+    for parent, keys in PARENT_CATEGORY_KEYS.items():
+        if any(k in cat for k in keys):
+            return parent
+    return "other"
 
 # ---------- Helpers ----------
 def format_docs(docs) -> str:
@@ -37,13 +56,14 @@ def format_docs(docs) -> str:
         meta = d.metadata or {}
         product_id = str(meta.get("product_id", "N/A"))
         title = str(meta.get("product_title", "N/A"))
+        category = str(meta.get("source_query", "N/A"))
         price = str(meta.get("price", "N/A"))
         rating = str(meta.get("rating", "N/A"))
-        key = (product_id, title, price, rating)
+        key = (product_id, title, category, price, rating)
         grouped[key].append((d.page_content or "").strip())
 
     blocks = []
-    for (product_id, title, price, rating), reviews in grouped.items():
+    for (product_id, title, category, price, rating), reviews in grouped.items():
         unique_reviews = []
         seen = set()
         for r in reviews:
@@ -60,6 +80,7 @@ def format_docs(docs) -> str:
         blocks.append(
             f"Product ID: {product_id}\n"
             f"Title: {title}\n"
+            f"Category: {category}\n"
             f"Price: {price}\n"
             f"Rating: {rating}\n"
             f"Matched Reviews:\n" + ("\n".join(review_lines) if review_lines else "No reviews found")
@@ -104,6 +125,29 @@ def _extract_model_markers(text: str) -> set[str]:
     return {item for item in normalized if len(item) >= 3}
 
 
+def _extract_category_hint(query: str) -> str:
+    m = re.search(r"\[category:\s*([^\]]+)\]", (query or ""), flags=re.IGNORECASE)
+    return (m.group(1).strip().lower() if m else "")
+
+
+def _filter_blocks_by_category_hint(query: str, context: str) -> str:
+    category = _extract_category_hint(query)
+    if not category:
+        return context
+    blocks = [b for b in (context or "").split("\n\n---\n\n") if b.strip()]
+    if not blocks:
+        return context
+
+    kept = []
+    for block in blocks:
+        m = re.search(r"^Category:\s*(.+)$", block, flags=re.IGNORECASE | re.MULTILINE)
+        raw_cat = m.group(1).strip().lower() if m else ""
+        parent = _map_parent_from_source_query(raw_cat)
+        if category == parent or category == raw_cat:
+            kept.append(block)
+    return "\n\n---\n\n".join(kept)
+
+
 def _filter_product_blocks_by_query(query: str, context: str) -> str:
     """
     Keep only the most query-relevant product blocks when retrieval returns mixed products.
@@ -132,6 +176,10 @@ async def get_product_info(query: str) -> str:
     try:
         docs = retriever.invoke(query)
         context = format_docs(docs)
+        if not context.strip():
+            return "No local results found."
+
+        context = _filter_blocks_by_category_hint(query, context)
         if not context.strip():
             return "No local results found."
 

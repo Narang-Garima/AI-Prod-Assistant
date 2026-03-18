@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopBuddy Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #f5f8fc;
+            --panel: #fff;
+            --ink: #0f172a;
+            --muted: #64748b;
+            --line: #dbe5f0;
+            --accent: #0f766e;
+            --accent-2: #0369a1;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--ink);
+            background: radial-gradient(circle at top right, #e2eefb 0%, var(--bg) 45%);
+        }
+        .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .topbar {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px;
+        }
+        .topbar h1 { margin: 0; font-size: 24px; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        .controls select {
+            border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font: inherit; background: #fff;
+        }
+        .controls .multi {
+            min-width: 260px;
+            height: 120px;
+            padding: 6px;
+        }
+        .btn {
+            text-decoration: none; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            border-radius: 10px; padding: 10px 14px; font-weight: 600;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+            min-height: 330px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        }
+        .card h2 { margin: 0 0 8px; font-size: 16px; }
+        .card p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+        canvas { width: 100% !important; height: 250px !important; }
+        .warning {
+            margin-bottom: 16px;
+            border: 1px solid #facc15;
+            background: #fffbeb;
+            color: #854d0e;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: 1fr; }
+            .topbar { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="topbar">
+            <div>
+                <h1>ShopBuddy Category Dashboard</h1>
+                <div style="color:#64748b;font-size:14px;">Meaningful view by scraped category history</div>
+            </div>
+            <div class="controls">
+                <select id="categoryFilter"></select>
+                <select id="compareCategories" class="multi" multiple title="Select items to compare"></select>
+                <a class="btn" href="/">Back To Chat</a>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="warning">{{ error }}</div>
+        {% endif %}
+
+        <div class="grid">
+            <section class="card">
+                <h2>Coverage</h2>
+                <p>If category is selected, this shows product groups inside it (for example iPhone, Pixel, Samsung).</p>
+                <canvas id="categoryCountChart"></canvas>
+            </section>
+            <section class="card">
+                <h2>Average Rating</h2>
+                <p>Compare ratings by selected groups.</p>
+                <canvas id="ratingChart"></canvas>
+            </section>
+            <section class="card">
+                <h2>Average Price</h2>
+                <p>Compare pricing by selected groups.</p>
+                <canvas id="priceChart"></canvas>
+            </section>
+            <section class="card">
+                <h2>Trend By Date</h2>
+                <p>Scrape activity consistency across dates.</p>
+                <canvas id="trendChart"></canvas>
+            </section>
+        </div>
+    </div>
+    <script>
+        const selectedCategory = "{{ selected_category }}";
+        const categories = {{ categories_json|safe }};
+        const compareOptions = {{ compare_options_json|safe }};
+
+        const countLabels = {{ count_labels_json|safe }};
+        const countValues = {{ count_values_json|safe }};
+        const ratingLabels = {{ rating_labels_json|safe }};
+        const ratingValues = {{ rating_values_json|safe }};
+        const priceLabels = {{ price_labels_json|safe }};
+        const priceValues = {{ price_values_json|safe }};
+        const countMap = {{ count_map_json|safe }};
+        const ratingMap = {{ rating_map_json|safe }};
+        const priceMap = {{ price_map_json|safe }};
+        const trendLabels = {{ trend_labels_json|safe }};
+        const trendDatasets = {{ trend_datasets_json|safe }};
+
+        const categoryFilter = document.getElementById("categoryFilter");
+        const compareCategories = document.getElementById("compareCategories");
+        categoryFilter.innerHTML = "";
+        const allOpt = document.createElement("option");
+        allOpt.value = "all";
+        allOpt.textContent = "All Categories";
+        categoryFilter.appendChild(allOpt);
+        for (const c of categories) {
+            const opt = document.createElement("option");
+            opt.value = c.value;
+            opt.textContent = `${c.label} (${c.count})`;
+            categoryFilter.appendChild(opt);
+        }
+        categoryFilter.value = selectedCategory || "all";
+        categoryFilter.addEventListener("change", () => {
+            const value = categoryFilter.value || "all";
+            window.location.href = `/dashboard?category=${encodeURIComponent(value)}`;
+        });
+
+        // Multi-select compare options
+        compareCategories.innerHTML = "";
+        const compareAll = compareOptions.map(c => c.value);
+        for (const c of compareOptions) {
+            const opt = document.createElement("option");
+            opt.value = c.value;
+            opt.textContent = c.label;
+            opt.selected = true;
+            compareCategories.appendChild(opt);
+        }
+
+        const countChart = new Chart(document.getElementById("categoryCountChart"), {
+            type: "bar",
+            data: {
+                labels: countLabels,
+                datasets: [{ label: "Items", data: countValues, backgroundColor: "#0ea5a6" }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: "y" }
+        });
+
+        const ratingChart = new Chart(document.getElementById("ratingChart"), {
+            type: "bar",
+            data: {
+                labels: ratingLabels,
+                datasets: [{ label: "Avg Rating", data: ratingValues, backgroundColor: "#0369a1" }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: "y" }
+        });
+
+        const priceChart = new Chart(document.getElementById("priceChart"), {
+            type: "bar",
+            data: {
+                labels: priceLabels,
+                datasets: [{ label: "Avg Price", data: priceValues, backgroundColor: "#0f766e" }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: "y" }
+        });
+
+        const palette = ["#0ea5a6", "#0369a1", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#be185d", "#0891b2"];
+        const trendChart = new Chart(document.getElementById("trendChart"), {
+            type: "line",
+            data: {
+                labels: trendLabels,
+                datasets: trendDatasets.map((d, i) => ({
+                    label: d.label,
+                    data: d.data,
+                    borderColor: palette[i % palette.length],
+                    backgroundColor: palette[i % palette.length],
+                    tension: 0.2
+                }))
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        function selectedCompareValues() {
+            const selected = Array.from(compareCategories.selectedOptions).map(o => (o.value || "").trim().toLowerCase());
+            return selected.length ? selected : compareAll;
+        }
+
+        function filterBars(allLabels, allValues, allowed) {
+            const outLabels = [];
+            const outValues = [];
+            const allowedNorm = allowed.map(a => (a || "").trim().toLowerCase());
+            for (let i = 0; i < allLabels.length; i++) {
+                const labelNorm = String(allLabels[i] || "").trim().toLowerCase();
+                if (allowedNorm.includes(labelNorm)) {
+                    outLabels.push(allLabels[i]);
+                    outValues.push(allValues[i]);
+                }
+            }
+            return { labels: outLabels, values: outValues };
+        }
+
+        function buildFromMap(mapObj, allowed) {
+            const outLabels = [];
+            const outValues = [];
+            const allowedNorm = allowed.map(a => (a || "").trim().toLowerCase());
+            for (const [k, v] of Object.entries(mapObj || {})) {
+                const keyNorm = String(k || "").trim().toLowerCase();
+                if (allowedNorm.includes(keyNorm)) {
+                    outLabels.push(k);
+                    outValues.push(v);
+                }
+            }
+            return { labels: outLabels, values: outValues };
+        }
+
+        function applyCompareFilter() {
+            const allowed = selectedCompareValues();
+
+            const c = filterBars(countLabels, countValues, allowed);
+            countChart.data.labels = c.labels;
+            countChart.data.datasets[0].data = c.values;
+            countChart.update();
+
+            const r = buildFromMap(ratingMap, allowed);
+            ratingChart.data.labels = r.labels.length ? r.labels : ratingLabels;
+            ratingChart.data.datasets[0].data = r.values.length ? r.values : ratingValues;
+            ratingChart.update();
+
+            const p = buildFromMap(priceMap, allowed);
+            priceChart.data.labels = p.labels.length ? p.labels : priceLabels;
+            priceChart.data.datasets[0].data = p.values.length ? p.values : priceValues;
+            priceChart.update();
+
+            trendChart.data.datasets = trendDatasets
+                .filter(d => allowed.map(x => (x || "").trim().toLowerCase()).includes(String(d.label || "").trim().toLowerCase()))
+                .map((d, i) => ({
+                    label: d.label,
+                    data: d.data,
+                    borderColor: palette[i % palette.length],
+                    backgroundColor: palette[i % palette.length],
+                    tension: 0.2
+                }));
+            trendChart.update();
+        }
+
+        compareCategories.addEventListener("change", applyCompareFilter);
+        applyCompareFilter();
+    </script>
+</body>
+</html>

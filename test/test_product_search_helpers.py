@@ -108,3 +108,21 @@ def test_filter_product_blocks_prefers_query_matching_product():
     filtered = mod._filter_product_blocks_by_query(query, context)
     assert "ARTIOS Watercolor Paper" in filtered
     assert "Apple iPhone 17" not in filtered
+
+
+def test_extract_category_hint_from_query_prefix():
+    mod = _load_product_search_server_with_stubs()
+    query = "[Category: sunscreen] suggest best options for oily skin"
+    assert mod._extract_category_hint(query) == "sunscreen"
+
+
+def test_filter_blocks_by_category_hint_keeps_matching_category_only():
+    mod = _load_product_search_server_with_stubs()
+    context = (
+        "Product ID: A1\nTitle: Apple iPhone 15\nCategory: phone\nPrice: 50000\nRating: 4.6\nMatched Reviews:\n1. good\n\n---\n\n"
+        "Product ID: B1\nTitle: UV Shield SPF 50\nCategory: sunscreen\nPrice: 499\nRating: 4.2\nMatched Reviews:\n1. nice"
+    )
+    query = "[Category: sunscreen] recommend product"
+    filtered = mod._filter_blocks_by_category_hint(query, context)
+    assert "UV Shield SPF 50" in filtered
+    assert "Apple iPhone 15" not in filtered

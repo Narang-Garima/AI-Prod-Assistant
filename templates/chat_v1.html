@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShopBuddy Assistant v1</title>
+    <title>ShopBuddy Assistant</title>
     <style>
         :root {
             --bg: #f2f6fb;
@@ -17,9 +17,7 @@
             --accent: #0ea5a6;
             --accent-2: #0284c7;
         }
-
         * { box-sizing: border-box; }
-
         body {
             margin: 0;
             font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
@@ -28,102 +26,60 @@
             height: 100vh;
             overflow: hidden;
         }
-
         .app {
             display: grid;
-            grid-template-columns: 310px 1fr;
+            grid-template-columns: 300px 1fr;
             height: 100vh;
         }
-
         .sidebar {
             background: var(--sidebar);
             color: #fff;
             padding: 14px;
+            border-right: 1px solid #243042;
             display: flex;
             flex-direction: column;
-            gap: 14px;
-            border-right: 1px solid #242424;
+            gap: 12px;
         }
-
         .brand {
             font-size: 18px;
             font-weight: 600;
+        }
+        .brand-wrap {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-
-        .brand-logo {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            object-fit: cover;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: #fff;
-        }
-
-        .brand small {
-            display: block;
-            margin-top: 4px;
-            color: #a3a3a3;
-            font-size: 12px;
-            font-weight: 400;
-        }
-
-        .brand-text {
+        .sidebar-logo-wrap {
             display: flex;
-            flex-direction: column;
+            justify-content: center;
+            padding: 6px 0 2px;
         }
-
-        .hero-card {
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            background: linear-gradient(160deg, rgba(14, 165, 166, 0.14), rgba(2, 132, 199, 0.12));
-            border-radius: 12px;
-            padding: 10px;
+        .brand-logo {
+            width: 92px;
+            height: 92px;
+            object-fit: cover;
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: #fff;
+            box-shadow: 0 6px 18px rgba(2, 8, 23, 0.35);
         }
-
-        .hero-card img {
-            width: 100%;
-            border-radius: 10px;
-            display: block;
-        }
-
         .new-chat {
             border: 1px solid #3a3a3a;
-            background: linear-gradient(135deg, #0ea5a6, #0284c7);
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
             color: #fff;
             border-radius: 10px;
             padding: 10px 12px;
             cursor: pointer;
             text-align: left;
-            font-weight: 500;
+            font-weight: 600;
         }
-
-        .new-chat:hover { filter: brightness(1.06); }
-
-        .history-section {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .history-title {
-            color: #cbd5e1;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
         .thread-list {
             display: flex;
             flex-direction: column;
             gap: 6px;
-            max-height: 220px;
+            max-height: 240px;
             overflow-y: auto;
-            padding-right: 2px;
         }
-
         .thread-item {
             border: 1px solid rgba(148, 163, 184, 0.24);
             background: rgba(15, 23, 42, 0.35);
@@ -132,56 +88,24 @@
             color: #e2e8f0;
             cursor: pointer;
             text-align: left;
+            width: 100%;
         }
-
-        .thread-item:hover {
-            border-color: rgba(56, 189, 248, 0.45);
-            background: rgba(2, 132, 199, 0.22);
-        }
-
         .thread-item.active {
             border-color: rgba(14, 165, 166, 0.65);
             background: rgba(14, 165, 166, 0.2);
         }
-
-        .thread-label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            line-height: 1.3;
-            word-break: break-word;
-        }
-
         .thread-meta {
-            display: block;
-            margin-top: 3px;
+            margin-top: 4px;
             font-size: 11px;
             color: #94a3b8;
+            display: block;
         }
-
-        .hint {
-            color: #dbeafe;
-            font-size: 18px;
-            line-height: 1.5;
-            font-weight: 600;
-            margin-top: 6px;
-        }
-
-        .sidebar-footer {
-            color: #94a3b8;
-            font-size: 12px;
-            line-height: 1.5;
-            border-top: 1px solid rgba(148, 163, 184, 0.25);
-            padding-top: 10px;
-        }
-
         .main {
             display: flex;
             flex-direction: column;
             min-width: 0;
             min-height: 0;
         }
-
         .topbar {
             background: var(--panel);
             border-bottom: 1px solid var(--border);
@@ -190,77 +114,31 @@
             align-items: center;
             justify-content: space-between;
         }
-
-        .title-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .title-logo {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            object-fit: cover;
-            border: 1px solid var(--border);
-        }
-
-        .title {
-            font-size: 16px;
+        .top-actions { display: flex; gap: 8px; }
+        .dashboard-link {
+            text-decoration: none;
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
             font-weight: 600;
         }
-
-        .title small {
-            margin-left: 8px;
-            color: var(--muted);
-            font-weight: 400;
-        }
-
         .chat {
             flex: 1;
             overflow-y: auto;
-            padding: 26px 0;
-            min-height: 0;
+            padding: 24px 0;
         }
-
         .messages {
             max-width: 860px;
             margin: 0 auto;
             padding: 0 20px;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 12px;
         }
-
-        .row {
-            display: flex;
-            gap: 10px;
-        }
-
+        .row { display: flex; gap: 10px; }
         .row.user { justify-content: flex-end; }
-
-        .avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            display: grid;
-            place-items: center;
-            font-size: 12px;
-            font-weight: 700;
-            flex: 0 0 auto;
-            margin-top: 2px;
-        }
-
-        .avatar.bot {
-            background: #0b3a5b;
-            color: #fff;
-        }
-
-        .avatar.user {
-            background: #0ea5a6;
-            color: #fff;
-        }
-
         .bubble {
             max-width: min(78ch, 80vw);
             border: 1px solid var(--border);
@@ -271,34 +149,29 @@
             word-wrap: break-word;
             background: var(--bot);
         }
-
         .row.user .bubble {
             background: var(--user);
             border-color: #c6dafc;
         }
-
         .meta {
-            margin-top: 8px;
+            margin-top: 6px;
             color: var(--muted);
             font-size: 12px;
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
         }
-
         .chip {
             background: #f3f4f6;
             border: 1px solid #e5e7eb;
             border-radius: 999px;
             padding: 2px 8px;
         }
-
         .composer-wrap {
             border-top: 1px solid var(--border);
             background: var(--panel);
             padding: 14px 20px 18px;
         }
-
         .composer {
             max-width: 860px;
             margin: 0 auto;
@@ -310,7 +183,15 @@
             padding: 12px;
             background: #fff;
         }
-
+        .category-select {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 10px;
+            font: inherit;
+            color: var(--text);
+            background: #fff;
+            max-width: 220px;
+        }
         .composer textarea {
             flex: 1;
             border: none;
@@ -321,7 +202,6 @@
             max-height: 160px;
             line-height: 1.45;
         }
-
         .send {
             border: none;
             background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -332,12 +212,7 @@
             cursor: pointer;
             font-size: 16px;
         }
-
-        .send:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-
+        .send:disabled { background: #9ca3af; cursor: not-allowed; }
         @media (max-width: 900px) {
             .app { grid-template-columns: 1fr; }
             .sidebar { display: none; }
@@ -348,112 +223,91 @@
 <body>
     <div class="app">
         <aside class="sidebar">
-            <div class="brand">
-                <img class="brand-logo" src="/static/f6634145-b9d9-4ea1-b5e5-cb705192c6fd.png" alt="ShopBuddy">
-                <div class="brand-text">
-                    ShopBuddy Assistant
-                    <small>QuickCart Help</small>
-                </div>
+            <div class="brand-wrap">
+                <div class="brand">ShopBuddy Assistant</div>
             </div>
             <button id="newChatBtn" class="new-chat">+ New Chat</button>
-            <div class="history-section">
-                <div class="history-title">Recent Chats</div>
-                <div id="threadList" class="thread-list">
-                    <div class="thread-item"><span class="thread-label">No saved chats yet.</span></div>
-                </div>
+            <div class="sidebar-logo-wrap">
+                <img class="brand-logo" src="/static/f6634145-b9d9-4ea1-b5e5-cb705192c6fd.png" alt="ShopBuddy Logo">
             </div>
-            <div class="hero-card">
-                <img src="/static/f6634145-b9d9-4ea1-b5e5-cb705192c6fd.png" alt="ShopBuddy Assistant">
-            </div>
-            <div class="hint">
-                Ask product price, reviews, comparison, and recommendations.
-            </div>
-            <div class="sidebar-footer">
-                &copy; 2026 Customer Support System<br>
-                Need help? garimanarang2407@gmail.com
+            <div id="threadList" class="thread-list">
+                <button class="thread-item">No saved chats yet.</button>
             </div>
         </aside>
-
         <main class="main">
             <header class="topbar">
-                <div class="title-wrap">
-                    <img class="title-logo" src="/static/f6634145-b9d9-4ea1-b5e5-cb705192c6fd.png" alt="ShopBuddy">
-                    <div class="title">ShopBuddy <small id="status">Online</small></div>
+                <div>ShopBuddy <small id="status">Online</small></div>
+                <div class="top-actions">
+                    <a id="dashboardLink" class="dashboard-link" href="/dashboard?category=all">Dashboard</a>
                 </div>
             </header>
-
             <section class="chat" id="chatScroll">
                 <div class="messages" id="messages"></div>
             </section>
-
             <div class="composer-wrap">
                 <form class="composer" id="composerForm">
+                    <select id="categoryHint" class="category-select" title="Category Filter">
+                        <option value="auto">Auto</option>
+                    </select>
                     <textarea id="prompt" name="msg" placeholder="Message ShopBuddy..." rows="1" required></textarea>
-                    <button class="send" id="sendBtn" type="submit" title="Send">↑</button>
+                    <button class="send" id="sendBtn" type="submit" title="Send">&#8593;</button>
                 </form>
             </div>
         </main>
     </div>
-
     <script>
         const messagesEl = document.getElementById("messages");
         const chatScrollEl = document.getElementById("chatScroll");
         const promptEl = document.getElementById("prompt");
         const formEl = document.getElementById("composerForm");
         const sendBtnEl = document.getElementById("sendBtn");
+        const categoryHintEl = document.getElementById("categoryHint");
+        const dashboardLinkEl = document.getElementById("dashboardLink");
         const newChatBtnEl = document.getElementById("newChatBtn");
         const threadListEl = document.getElementById("threadList");
-
         let localThreadId = localStorage.getItem("shopbuddy_thread_id") || null;
 
         function nowTime() {
             const d = new Date();
-            const h = d.getHours();
-            const m = String(d.getMinutes()).padStart(2, "0");
-            return `${h}:${m}`;
+            return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+        }
+
+        function makeThreadId() {
+            if (window.crypto && typeof window.crypto.randomUUID === "function") {
+                return `thread-${window.crypto.randomUUID().replace(/-/g, "")}`;
+            }
+            const fallback = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+            return `thread-${fallback.replace(/[^a-z0-9]/gi, "")}`;
         }
 
         function parseMeta(text) {
             const raw = String(text || "");
-            let normalized = raw
-                .replace(/\\r\\n/g, "\n")
-                .replace(/\\n/g, "\n")
-                .replace(/\\"/g, "\"")
-                .trim();
-
-            // Remove wrapping quotes from stringified payloads
-            if (
-                (normalized.startsWith("\"") && normalized.endsWith("\"")) ||
-                (normalized.startsWith("'") && normalized.endsWith("'"))
-            ) {
-                normalized = normalized.slice(1, -1).trim();
-            }
-
-            let source = "none";
-            let route = "none";
-
-            const sourceMatch = normalized.match(/\[MCP Tool Called:\s*([^\]]+)\]/i);
-            const routeMatch = normalized.match(/\[Route:\s*([^\]]+)\]/i);
-            if (sourceMatch) source = sourceMatch[1].trim();
-            if (routeMatch) route = routeMatch[1].trim();
-
-            const cleanText = normalized
+            const sourceMatch = raw.match(/\[MCP Tool Called:\s*([^\]]+)\]/i);
+            const routeMatch = raw.match(/\[Route:\s*([^\]]+)\]/i);
+            const source = sourceMatch ? sourceMatch[1].trim() : "none";
+            const route = routeMatch ? routeMatch[1].trim() : "none";
+            let clean = raw
                 .replace(/\n?\[MCP Tool Called:[^\]]+\]/gi, "")
                 .replace(/\n?\[Route:[^\]]+\]/gi, "")
                 .replace(/\n{3,}/g, "\n\n")
                 .trim();
-
-            return { text: cleanText, source, route };
+            clean = clean
+                .replace(/\\r\\n/g, "\n")
+                .replace(/\\n/g, "\n")
+                .replace(/\\"/g, "\"")
+                .trim();
+            if (
+                (clean.startsWith("\"") && clean.endsWith("\"")) ||
+                (clean.startsWith("'") && clean.endsWith("'"))
+            ) {
+                clean = clean.slice(1, -1).trim();
+            }
+            return { text: clean, source, route };
         }
 
         function addMessage(role, text) {
             const row = document.createElement("div");
             row.className = `row ${role}`;
-
-            const avatar = document.createElement("div");
-            avatar.className = `avatar ${role}`;
-            avatar.textContent = role === "user" ? "You" : "AI";
-
             const bubbleWrap = document.createElement("div");
             const bubble = document.createElement("div");
             bubble.className = "bubble";
@@ -461,43 +315,46 @@
             if (role === "bot") {
                 const parsed = parseMeta(text);
                 bubble.textContent = parsed.text || text;
-
                 const meta = document.createElement("div");
                 meta.className = "meta";
-                const t = document.createElement("span");
-                t.className = "chip";
-                t.textContent = nowTime();
-                const s = document.createElement("span");
-                s.className = "chip";
-                s.textContent = `MCP Tool Called: ${parsed.source}`;
-                const r = document.createElement("span");
-                r.className = "chip";
-                r.textContent = `Route: ${parsed.route}`;
-                meta.append(t, s, r);
+                meta.innerHTML = `<span class="chip">${nowTime()}</span><span class="chip">MCP Tool: ${parsed.source}</span><span class="chip">Route: ${parsed.route}</span>`;
                 bubbleWrap.appendChild(bubble);
                 bubbleWrap.appendChild(meta);
             } else {
                 bubble.textContent = text;
                 const meta = document.createElement("div");
                 meta.className = "meta";
-                const t = document.createElement("span");
-                t.className = "chip";
-                t.textContent = nowTime();
-                meta.appendChild(t);
+                meta.innerHTML = `<span class="chip">${nowTime()}</span>`;
                 bubbleWrap.appendChild(bubble);
                 bubbleWrap.appendChild(meta);
             }
 
-            if (role === "user") {
-                row.appendChild(bubbleWrap);
-                row.appendChild(avatar);
-            } else {
-                row.appendChild(avatar);
-                row.appendChild(bubbleWrap);
-            }
-
+            row.appendChild(bubbleWrap);
             messagesEl.appendChild(row);
             chatScrollEl.scrollTop = chatScrollEl.scrollHeight;
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch("/_categories");
+                if (!response.ok) return;
+                const payload = await response.json();
+                const categories = Array.isArray(payload.categories) ? payload.categories : [];
+                categoryHintEl.innerHTML = '<option value="auto">Auto</option>';
+                for (const c of categories) {
+                    const option = document.createElement("option");
+                    option.value = c.value;
+                    option.textContent = `${c.label} (${c.count})`;
+                    categoryHintEl.appendChild(option);
+                }
+            } catch (_) {}
+            updateDashboardLink();
+        }
+
+        function updateDashboardLink() {
+            const selected = (categoryHintEl.value || "auto").trim().toLowerCase();
+            const category = selected === "auto" ? "all" : selected;
+            dashboardLinkEl.href = `/dashboard?category=${encodeURIComponent(category)}`;
         }
 
         async function sendMessage(message) {
@@ -505,8 +362,8 @@
             try {
                 const body = new URLSearchParams();
                 body.append("msg", message);
+                body.append("category_hint", categoryHintEl.value || "auto");
                 if (localThreadId) body.append("thread_id", localThreadId);
-
                 const response = await fetch("/get", {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -525,27 +382,21 @@
         function renderThreads(threads) {
             threadListEl.innerHTML = "";
             if (!threads || !threads.length) {
-                const empty = document.createElement("div");
+                const empty = document.createElement("button");
                 empty.className = "thread-item";
-                empty.innerHTML = '<span class="thread-label">No saved chats yet.</span>';
+                empty.textContent = "No saved chats yet.";
                 threadListEl.appendChild(empty);
                 return;
             }
-
             for (const thread of threads) {
                 const item = document.createElement("button");
                 item.type = "button";
                 item.className = "thread-item";
                 if (thread.thread_id === localThreadId) item.classList.add("active");
-
                 const shortId = String(thread.thread_id || "").replace(/^thread-/, "").slice(0, 10) || "thread";
                 const turns = Number(thread.turns || 0);
                 const when = thread.last_seen ? new Date(thread.last_seen).toLocaleString() : "unknown";
-
-                item.innerHTML =
-                    `<span class="thread-label">thread-${shortId}</span>` +
-                    `<span class="thread-meta">${turns} turns · ${when}</span>`;
-
+                item.innerHTML = `<span>thread-${shortId}</span><span class="thread-meta">${turns} turns - ${when}</span>`;
                 item.addEventListener("click", async () => {
                     await loadThread(thread.thread_id);
                 });
@@ -556,39 +407,29 @@
         async function loadThreads() {
             try {
                 const response = await fetch("/_history/threads");
-                if (!response.ok) {
-                    throw new Error("history endpoint unavailable");
-                }
+                if (!response.ok) throw new Error("history endpoint unavailable");
                 const threads = await response.json();
                 renderThreads(threads);
-            } catch (error) {
-                threadListEl.innerHTML = "";
-                const note = document.createElement("div");
-                note.className = "thread-item";
-                note.innerHTML = '<span class="thread-label">History unavailable (start proxy on :8010).</span>';
-                threadListEl.appendChild(note);
+            } catch (_) {
+                threadListEl.innerHTML = '<button class="thread-item">History unavailable.</button>';
             }
         }
 
         async function loadThread(threadId) {
             try {
                 const response = await fetch(`/_history/${encodeURIComponent(threadId)}`);
-                if (!response.ok) {
-                    throw new Error("thread not found");
-                }
+                if (!response.ok) throw new Error("thread not found");
                 const turns = await response.json();
                 localThreadId = threadId;
                 localStorage.setItem("shopbuddy_thread_id", localThreadId);
                 messagesEl.innerHTML = "";
-
                 for (const turn of turns) {
                     if (turn.user_message) addMessage("user", turn.user_message);
                     if (turn.assistant_message) addMessage("bot", turn.assistant_message);
                 }
-                chatScrollEl.scrollTop = chatScrollEl.scrollHeight;
                 loadThreads();
             } catch (error) {
-                addMessage("bot", `Unable to load history for this thread: ${error.message}`);
+                addMessage("bot", `Unable to load history: ${error.message}`);
             }
         }
 
@@ -600,6 +441,10 @@
             promptEl.value = "";
             promptEl.style.height = "24px";
             await sendMessage(message);
+        });
+
+        categoryHintEl.addEventListener("change", () => {
+            updateDashboardLink();
         });
 
         promptEl.addEventListener("input", () => {
@@ -615,7 +460,7 @@
         });
 
         newChatBtnEl.addEventListener("click", () => {
-            localThreadId = `thread-${crypto.randomUUID().replace(/-/g, "")}`;
+            localThreadId = makeThreadId();
             localStorage.setItem("shopbuddy_thread_id", localThreadId);
             messagesEl.innerHTML = "";
             addMessage("bot", "Hello! How can I assist you today with your shopping queries?\n\n[MCP Tool Called: none]\n[Route: direct]");
@@ -623,11 +468,13 @@
         });
 
         if (!localThreadId) {
-            localThreadId = `thread-${crypto.randomUUID().replace(/-/g, "")}`;
+            localThreadId = makeThreadId();
             localStorage.setItem("shopbuddy_thread_id", localThreadId);
         }
 
         addMessage("bot", "Hello! How can I assist you today with your shopping queries?\n\n[MCP Tool Called: none]\n[Route: direct]");
+        loadCategories();
+        updateDashboardLink();
         loadThreads();
     </script>
 </body>
