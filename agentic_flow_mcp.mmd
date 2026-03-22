@@ -1,0 +1,21 @@
+flowchart TD
+    A[User Request] --> B[Agent Orchestrator]
+    B --> C[Plan Task]
+    C --> D{Need External Context/Actions?}
+
+    D -- No --> E[Reason + Generate Response]
+    E --> F[Return to User]
+
+    D -- Yes --> G[Select MCP Tool/Server]
+    G --> H[Send MCP Request]
+    H --> I[MCP Server]
+    I --> J[Tool Execution<br/>(DB/API/File/Code/Search)]
+    J --> K[Structured Result]
+    K --> L[Agent Validates + Integrates Result]
+    L --> M{More Tool Calls Needed?}
+
+    M -- Yes --> G
+    M -- No --> E
+
+    E --> N[Log Trace + Memory Update]
+    N --> F

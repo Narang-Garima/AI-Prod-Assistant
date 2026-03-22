@@ -123,6 +123,48 @@
             padding: 8px 12px;
             font-size: 13px;
             font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+        .poster-panel {
+            position: fixed;
+            top: 74px;
+            right: 20px;
+            width: 320px;
+            z-index: 50;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 14px 36px rgba(15, 23, 42, 0.18);
+            padding: 12px;
+        }
+        .poster-panel.hidden {
+            display: none;
+        }
+        .poster-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .poster-select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 10px;
+            font: inherit;
+            color: var(--text);
+            background: #fff;
+            margin-bottom: 8px;
+        }
+        .poster-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .poster-status {
+            font-size: 12px;
+            color: var(--muted);
+            min-height: 16px;
         }
         .chat {
             flex: 1;
@@ -239,8 +281,20 @@
                 <div>ShopBuddy <small id="status">Online</small></div>
                 <div class="top-actions">
                     <a id="dashboardLink" class="dashboard-link" href="/dashboard?category=all">Dashboard</a>
+                    <button id="posterTabBtn" class="dashboard-link" type="button">Download POSTER</button>
                 </div>
             </header>
+            <div id="posterPanel" class="poster-panel hidden" aria-hidden="true">
+                <div class="poster-title">Poster PDFs</div>
+                <select id="posterSelect" class="poster-select">
+                    <option value="">Loading PDFs...</option>
+                </select>
+                <div class="poster-actions">
+                    <button id="refreshPosterBtn" class="dashboard-link" type="button">Refresh</button>
+                    <button id="downloadPosterBtn" class="dashboard-link" type="button">Download</button>
+                </div>
+                <div id="posterStatus" class="poster-status"></div>
+            </div>
             <section class="chat" id="chatScroll">
                 <div class="messages" id="messages"></div>
             </section>
@@ -263,6 +317,12 @@
         const sendBtnEl = document.getElementById("sendBtn");
         const categoryHintEl = document.getElementById("categoryHint");
         const dashboardLinkEl = document.getElementById("dashboardLink");
+        const posterTabBtnEl = document.getElementById("posterTabBtn");
+        const posterPanelEl = document.getElementById("posterPanel");
+        const posterSelectEl = document.getElementById("posterSelect");
+        const refreshPosterBtnEl = document.getElementById("refreshPosterBtn");
+        const downloadPosterBtnEl = document.getElementById("downloadPosterBtn");
+        const posterStatusEl = document.getElementById("posterStatus");
         const newChatBtnEl = document.getElementById("newChatBtn");
         const threadListEl = document.getElementById("threadList");
         let localThreadId = localStorage.getItem("shopbuddy_thread_id") || null;
@@ -357,6 +417,40 @@
             dashboardLinkEl.href = `/dashboard?category=${encodeURIComponent(category)}`;
         }
 
+        function showPosterStatus(message) {
+            posterStatusEl.textContent = message || "";
+        }
+
+        async function loadPosterFiles() {
+            try {
+                const response = await fetch("/_posters");
+                if (!response.ok) throw new Error("Unable to load PDFs");
+                const payload = await response.json();
+                const files = Array.isArray(payload.files) ? payload.files : [];
+
+                posterSelectEl.innerHTML = "";
+                if (!files.length) {
+                    const option = document.createElement("option");
+                    option.value = "";
+                    option.textContent = "No PDFs found in /poster";
+                    posterSelectEl.appendChild(option);
+                    showPosterStatus("Add PDF files to the poster folder.");
+                    return;
+                }
+
+                for (const name of files) {
+                    const option = document.createElement("option");
+                    option.value = name;
+                    option.textContent = name;
+                    posterSelectEl.appendChild(option);
+                }
+                showPosterStatus(`${files.length} PDF file(s) available.`);
+            } catch (error) {
+                posterSelectEl.innerHTML = '<option value="">Unable to load PDFs</option>';
+                showPosterStatus(error.message || "Unable to load PDFs.");
+            }
+        }
+
         async function sendMessage(message) {
             sendBtnEl.disabled = true;
             try {
@@ -447,6 +541,27 @@
             updateDashboardLink();
         });
 
+        posterTabBtnEl.addEventListener("click", async () => {
+            const hidden = posterPanelEl.classList.toggle("hidden");
+            posterPanelEl.setAttribute("aria-hidden", hidden ? "true" : "false");
+            if (!hidden) {
+                await loadPosterFiles();
+            }
+        });
+
+        refreshPosterBtnEl.addEventListener("click", async () => {
+            await loadPosterFiles();
+        });
+
+        downloadPosterBtnEl.addEventListener("click", () => {
+            const name = (posterSelectEl.value || "").trim();
+            if (!name) {
+                showPosterStatus("Select a PDF to download.");
+                return;
+            }
+            window.location.href = `/download/poster/${encodeURIComponent(name)}`;
+        });
+
         promptEl.addEventListener("input", () => {
             promptEl.style.height = "24px";
             promptEl.style.height = `${Math.min(promptEl.scrollHeight, 160)}px`;
@@ -476,6 +591,7 @@
         loadCategories();
         updateDashboardLink();
         loadThreads();
+        loadPosterFiles();
     </script>
 </body>
 </html>

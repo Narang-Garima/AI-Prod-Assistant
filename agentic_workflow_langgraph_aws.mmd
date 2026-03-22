@@ -1,0 +1,67 @@
+flowchart LR
+    %% ===== Runtime Flow =====
+    START([Start]) --> ASSISTANT[Assistant\nRouting Decision]
+
+    ASSISTANT -->|memory query| MEMORY[(Memory\nSession Context)]
+    ASSISTANT -->|product query| RETRIEVER[Retriever\nMCP: get_product_info]
+    ASSISTANT -->|simple greeting| DIRECT[Direct\nGreeting / Canned]
+
+    RETRIEVER --> GRADER[Grader\nRAGAS Relevancy Gate]
+    GRADER -->|pass| GENERATOR[Generator\nFinal Response]
+    GRADER -->|fail / no results| WEBSEARCH[Web Search\nDuckDuckGo Fallback]
+    WEBSEARCH --> GENERATOR
+    MEMORY --> GENERATOR
+
+    DIRECT --> END([End])
+    GENERATOR --> END
+
+    %% ===== AWS Deployment Lane =====
+    subgraph AWS[Deploy on AWS]
+      direction TB
+      Route53[Route 53 / DNS]
+      WAF[AWS WAF]
+      APIGW[API Gateway or ALB]
+      ECS[ECS Fargate Service\nLangGraph App]
+      MCP[ECS Fargate Service\nFastAPI MCP Server]
+      REDIS[(ElastiCache Redis\nShort-term Memory Cache)]
+      DDB[(DynamoDB / Aurora\nLong-term Memory + Metadata)]
+      S3[(S3\nDocs / Artifacts / Logs)]
+      SM[Secrets Manager\nAPI Keys / Credentials]
+      CW[CloudWatch + X-Ray\nLogs / Metrics / Traces]
+      OSEARCH[OpenSearch / Kendra\nSearch Index (optional)]
+      CI[CodePipeline + CodeBuild\nCI/CD]
+
+      Route53 --> WAF --> APIGW --> ECS
+      ECS --> MCP
+      ECS --> REDIS
+      ECS --> DDB
+      ECS --> S3
+      ECS --> OSEARCH
+      ECS -. reads secrets .-> SM
+      MCP -. reads secrets .-> SM
+      ECS -. telemetry .-> CW
+      MCP -. telemetry .-> CW
+      CI --> ECS
+      CI --> MCP
+    end
+
+    %% runtime-to-deploy mapping
+    ASSISTANT -. runs in .-> ECS
+    RETRIEVER -. calls .-> MCP
+    MEMORY -. backed by .-> REDIS
+    MEMORY -. persisted in .-> DDB
+    WEBSEARCH -. egress via NAT/VPC policy .-> APIGW
+
+    classDef core fill:#0f2d4a,color:#fff,stroke:#8fb2cc,stroke-width:1.5px;
+    classDef eval fill:#c9982f,color:#fff,stroke:#f0d08b,stroke-width:1.5px;
+    classDef fallback fill:#b9493f,color:#fff,stroke:#e49d95,stroke-width:1.5px;
+    classDef mem fill:#3a8b56,color:#fff,stroke:#93caa4,stroke-width:1.5px;
+    classDef aws fill:#f59e0b,color:#111,stroke:#fcd34d,stroke-width:1.5px;
+    classDef store fill:#2563eb,color:#fff,stroke:#93c5fd,stroke-width:1.5px;
+
+    class ASSISTANT,RETRIEVER,GENERATOR,DIRECT,START,END core;
+    class GRADER eval;
+    class WEBSEARCH fallback;
+    class MEMORY mem;
+    class Route53,WAF,APIGW,ECS,MCP,SM,CW,OSEARCH,CI aws;
+    class REDIS,DDB,S3 store;
