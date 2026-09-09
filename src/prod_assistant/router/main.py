@@ -3,7 +3,6 @@ import re
 import sqlite3
 import csv
 import json
-from contextlib import asynccontextmanager
 from collections import defaultdict
 from datetime import datetime, timezone
 import uvicorn
@@ -13,40 +12,20 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from langchain_core.messages import HumanMessage
 from prod_assistant.workflow.agentic_workflow_with_mcp_websearch import AgenticRAG
 import uuid
 
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    _ensure_db()
-    yield
-
-
-app = FastAPI(
-    title="ShopBuddy AI Product Assistant",
-    version="0.1.0",
-    description="Agentic product research assistant built with LangGraph and MCP tools.",
-    lifespan=lifespan,
-)
+app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 DB_PATH = os.getenv("CHAT_HISTORY_DB", "data/chat_history.db")
-REVIEWS_HISTORY_CSV = os.getenv(
-    "REVIEWS_HISTORY_CSV", "data/product_reviews_history.csv"
-)
+REVIEWS_HISTORY_CSV = os.getenv("REVIEWS_HISTORY_CSV", "data/product_reviews_history.csv")
 POSTER_DIR = os.getenv("POSTER_DIR", "poster")
-ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv(
-        "CORS_ALLOWED_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000"
-    ).split(",")
-    if origin.strip()
-]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,25 +34,8 @@ app.add_middleware(
 rag_agent = AgenticRAG()
 
 _CATEGORY_RULES = [
-    (
-        "phone",
-        {
-            "iphone",
-            "pixel",
-            "galaxy",
-            "phone",
-            "mobile",
-            "oneplus",
-            "vivo",
-            "oppo",
-            "xiaomi",
-            "redmi",
-        },
-    ),
-    (
-        "laptop",
-        {"laptop", "macbook", "notebook", "vivobook", "victus", "pavilion", "thinkpad"},
-    ),
+    ("phone", {"iphone", "pixel", "galaxy", "phone", "mobile", "oneplus", "vivo", "oppo", "xiaomi", "redmi"}),
+    ("laptop", {"laptop", "macbook", "notebook", "vivobook", "victus", "pavilion", "thinkpad"}),
     ("audio", {"airpods", "earbuds", "headset", "earphone", "tws", "buds"}),
     ("watch", {"watch", "smartwatch", "fit", "band", "wearable"}),
     ("gaming", {"playstation", "ps5", "xbox", "controller", "gaming"}),
@@ -108,12 +70,8 @@ def _ensure_db() -> None:
 def _parse_source_route(assistant_text: str) -> tuple[str, str]:
     source = "none"
     route = "none"
-    source_match = re.search(
-        r"\[MCP Tool Called:\s*([^\]]+)\]", assistant_text or "", flags=re.IGNORECASE
-    )
-    route_match = re.search(
-        r"\[Route:\s*([^\]]+)\]", assistant_text or "", flags=re.IGNORECASE
-    )
+    source_match = re.search(r"\[MCP Tool Called:\s*([^\]]+)\]", assistant_text or "", flags=re.IGNORECASE)
+    route_match = re.search(r"\[Route:\s*([^\]]+)\]", assistant_text or "", flags=re.IGNORECASE)
     if source_match:
         source = source_match.group(1).strip()
     if route_match:
@@ -182,9 +140,7 @@ def _load_categories() -> list[dict]:
         return []
 
     counts: dict[str, int] = defaultdict(int)
-    with open(
-        REVIEWS_HISTORY_CSV, "r", encoding="utf-8", errors="ignore", newline=""
-    ) as f:
+    with open(REVIEWS_HISTORY_CSV, "r", encoding="utf-8", errors="ignore", newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             category = _map_to_parent_category(
@@ -218,9 +174,7 @@ def _build_dashboard_payload(category_filter: str) -> dict:
     trend_by_date: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     compare_option_counts: dict[str, int] = defaultdict(int)
 
-    with open(
-        REVIEWS_HISTORY_CSV, "r", encoding="utf-8", errors="ignore", newline=""
-    ) as f:
+    with open(REVIEWS_HISTORY_CSV, "r", encoding="utf-8", errors="ignore", newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             source_query = _normalize_text(row.get("source_query") or "")
@@ -229,11 +183,7 @@ def _build_dashboard_payload(category_filter: str) -> dict:
             if not parent_category:
                 continue
 
-            if (
-                category_filter
-                and category_filter != "all"
-                and parent_category != category_filter
-            ):
+            if category_filter and category_filter != "all" and parent_category != category_filter:
                 continue
 
             ts = (row.get("scrape_timestamp_utc") or "").strip()
@@ -242,11 +192,7 @@ def _build_dashboard_payload(category_filter: str) -> dict:
             price = _safe_float(row.get("price"))
 
             # all => aggregate by parent category; selected => aggregate by source query (iphone, pixel, etc.)
-            aggregate_key = (
-                parent_category
-                if category_filter == "all"
-                else (source_query or product_title or "unknown")
-            )
+            aggregate_key = parent_category if category_filter == "all" else (source_query or product_title or "unknown")
 
             aggregate_counts[aggregate_key] += 1
             trend_by_date[date_key][aggregate_key] += 1
@@ -268,25 +214,13 @@ def _build_dashboard_payload(category_filter: str) -> dict:
 
     return {
         "error": None,
-        "category_counts": dict(
-            sorted(aggregate_counts.items(), key=lambda x: x[1], reverse=True)[:12]
-        ),
-        "avg_rating_by_category": dict(
-            sorted(avg_rating_by_category.items(), key=lambda x: x[1], reverse=True)[
-                :12
-            ]
-        ),
-        "avg_price_by_category": dict(
-            sorted(avg_price_by_category.items(), key=lambda x: x[1])[:12]
-        ),
-        "trend_by_date": {
-            k: dict(v) for k, v in sorted(trend_by_date.items(), key=lambda x: x[0])
-        },
+        "category_counts": dict(sorted(aggregate_counts.items(), key=lambda x: x[1], reverse=True)[:12]),
+        "avg_rating_by_category": dict(sorted(avg_rating_by_category.items(), key=lambda x: x[1], reverse=True)[:12]),
+        "avg_price_by_category": dict(sorted(avg_price_by_category.items(), key=lambda x: x[1])[:12]),
+        "trend_by_date": {k: dict(v) for k, v in sorted(trend_by_date.items(), key=lambda x: x[0])},
         "compare_options": [
             {"value": k, "label": k.title(), "count": v}
-            for k, v in sorted(
-                compare_option_counts.items(), key=lambda x: x[1], reverse=True
-            )
+            for k, v in sorted(compare_option_counts.items(), key=lambda x: x[1], reverse=True)
         ],
     }
 
@@ -295,14 +229,14 @@ def _resolve_poster_dir() -> Path:
     return Path(POSTER_DIR).resolve()
 
 
+@app.on_event("startup")
+def startup() -> None:
+    _ensure_db()
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index_v1(request: Request):
-    return templates.TemplateResponse(request, "chat_v1.html")
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok", "service": "shopbuddy-ai"}
+    return templates.TemplateResponse("chat_v1.html", {"request": request})
 
 
 @app.get("/_categories")
@@ -328,27 +262,19 @@ async def dashboard(request: Request, category: str = "all"):
     ]
 
     return templates.TemplateResponse(
-        request,
         "dashboard.html",
         {
+            "request": request,
             "selected_category": category_filter,
             "categories_json": json.dumps(categories),
             "compare_options_json": json.dumps(payload["compare_options"]),
             "error": payload["error"],
             "count_labels_json": json.dumps(list(payload["category_counts"].keys())),
             "count_values_json": json.dumps(list(payload["category_counts"].values())),
-            "rating_labels_json": json.dumps(
-                list(payload["avg_rating_by_category"].keys())
-            ),
-            "rating_values_json": json.dumps(
-                list(payload["avg_rating_by_category"].values())
-            ),
-            "price_labels_json": json.dumps(
-                list(payload["avg_price_by_category"].keys())
-            ),
-            "price_values_json": json.dumps(
-                list(payload["avg_price_by_category"].values())
-            ),
+            "rating_labels_json": json.dumps(list(payload["avg_rating_by_category"].keys())),
+            "rating_values_json": json.dumps(list(payload["avg_rating_by_category"].values())),
+            "price_labels_json": json.dumps(list(payload["avg_price_by_category"].keys())),
+            "price_values_json": json.dumps(list(payload["avg_price_by_category"].values())),
             "count_map_json": json.dumps(payload["category_counts"]),
             "rating_map_json": json.dumps(payload["avg_rating_by_category"]),
             "price_map_json": json.dumps(payload["avg_price_by_category"]),
@@ -405,11 +331,7 @@ def list_posters():
         return {"files": []}
 
     files = sorted(
-        [
-            p.name
-            for p in poster_dir.iterdir()
-            if p.is_file() and p.suffix.lower() == ".pdf"
-        ],
+        [p.name for p in poster_dir.iterdir() if p.is_file() and p.suffix.lower() == ".pdf"],
         key=str.lower,
     )
     return {"files": files}
@@ -430,9 +352,7 @@ def download_poster(filename: str):
     if not target.exists() or not target.is_file():
         raise HTTPException(status_code=404, detail="PDF not found.")
 
-    return FileResponse(
-        path=str(target), filename=target.name, media_type="application/pdf"
-    )
+    return FileResponse(path=str(target), filename=target.name, media_type="application/pdf")
 
 
 @app.post("/get")
@@ -447,25 +367,16 @@ async def chat(
         thread_id = request.cookies.get("thread_id")
     if not thread_id:
         thread_id = f"thread-{uuid.uuid4().hex}"
-    response.set_cookie(
-        "thread_id",
-        thread_id,
-        httponly=True,
-        secure=os.getenv("COOKIE_SECURE", "false").lower() == "true",
-        samesite="lax",
-    )
+    response.set_cookie("thread_id", thread_id, httponly=False, samesite="lax")
 
     user_msg = (msg or "").strip()
     category = (category_hint or "auto").strip().lower()
-    effective_query = (
-        user_msg if category == "auto" else f"[Category: {category}] {user_msg}"
-    )
+    effective_query = user_msg if category == "auto" else f"[Category: {category}] {user_msg}"
 
     answer = await rag_agent.run(effective_query, thread_id=thread_id)
     if user_msg:
         _save_turn(thread_id=thread_id, user_message=user_msg, assistant_message=answer)
     return answer
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -2,7 +2,6 @@ import sys
 import traceback
 from typing import Optional, cast
 
-
 class ProductAssistantException(Exception):
     def __init__(self, error_message, error_details: Optional[object] = None):
         # Normalize message
@@ -20,11 +19,7 @@ class ProductAssistantException(Exception):
                 exc_info_obj = cast(sys, error_details)
                 exc_type, exc_value, exc_tb = exc_info_obj.exc_info()
             elif isinstance(error_details, BaseException):
-                exc_type, exc_value, exc_tb = (
-                    type(error_details),
-                    error_details,
-                    error_details.__traceback__,
-                )
+                exc_type, exc_value, exc_tb = type(error_details), error_details, error_details.__traceback__
             else:
                 exc_type, exc_value, exc_tb = sys.exc_info()
 
@@ -39,9 +34,7 @@ class ProductAssistantException(Exception):
 
         # Full pretty traceback (if available)
         if exc_type and exc_tb:
-            self.traceback_str = "".join(
-                traceback.format_exception(exc_type, exc_value, exc_tb)
-            )
+            self.traceback_str = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
         else:
             self.traceback_str = ""
 

@@ -18,6 +18,7 @@ scrapper_ui*.py
 
 notebook/
 google_cred/
+*.md
 uv.lock
 *.tar
 *.tar.gz
@@ -37,3 +38,4 @@ generation_workflow.py
 
 reports/
 chat.html
+docs/

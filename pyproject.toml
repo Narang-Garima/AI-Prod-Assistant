@@ -1,39 +1,21 @@
 [project]
 name = "ai-prod-assistant"
 version = "0.1.0"
-description = "Agentic product research assistant using LangGraph, MCP tools, Astra DB, and RAG evaluation."
+description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Garima Narang" }]
 dependencies = [
     "fastapi>=0.129.0",
-    "uvicorn>=0.35.0",
-    "jinja2>=3.1.0",
-    "python-multipart>=0.0.20",
-    "python-dotenv>=1.1.0",
-    "beautifulsoup4>=4.13.0",
-    "requests>=2.32.0",
-    "ddgs>=9.6.0",
     "playwright>=1.35.0",
     "langchain-astradb==0.6.1", # this will pull compatible astrapy>=2.0.1 automatically
     "astrapy>=2.0.1,<3.0.0",
     "langchain-google-genai",
     "langchain-openai",
     "langchain-groq",
-    "langchain-mcp-adapters>=0.1.10",
-    "mcp>=1.14.0",
     "selenium_stealth",
     "langgraph>=1.0.1",
-    "ragas>=0.3.4",
-    "structlog>=25.4.0",
     "pytest>=9.0.2",
-]
-
-[project.optional-dependencies]
-dev = [
-    "httpx>=0.28.0",
-    "pytest-cov>=7.0.0",
-    "ruff>=0.12.0",
 ]
 
 [tool.setuptools.packages.find]

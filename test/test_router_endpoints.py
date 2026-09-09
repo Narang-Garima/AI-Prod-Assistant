@@ -6,9 +6,7 @@ from fastapi.testclient import TestClient
 
 
 def _load_router_with_stubbed_agent():
-    fake_workflow = types.ModuleType(
-        "prod_assistant.workflow.agentic_workflow_with_mcp_websearch"
-    )
+    fake_workflow = types.ModuleType("prod_assistant.workflow.agentic_workflow_with_mcp_websearch")
 
     class FakeAgenticRAG:
         async def run(self, query: str, thread_id: str = "default_thread") -> str:
@@ -20,9 +18,7 @@ def _load_router_with_stubbed_agent():
             )
 
     fake_workflow.AgenticRAG = FakeAgenticRAG
-    sys.modules["prod_assistant.workflow.agentic_workflow_with_mcp_websearch"] = (
-        fake_workflow
-    )
+    sys.modules["prod_assistant.workflow.agentic_workflow_with_mcp_websearch"] = fake_workflow
     sys.modules.pop("prod_assistant.router.main", None)
     return importlib.import_module("prod_assistant.router.main")
 
@@ -32,14 +28,6 @@ def test_index_route_returns_200_and_v1_is_not_exposed():
     client = TestClient(router_main.app)
     assert client.get("/").status_code == 200
     assert client.get("/v1").status_code == 404
-
-
-def test_health_endpoint():
-    router_main = _load_router_with_stubbed_agent()
-    client = TestClient(router_main.app)
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "shopbuddy-ai"}
 
 
 def test_get_endpoint_sets_cookie_and_returns_agent_text():

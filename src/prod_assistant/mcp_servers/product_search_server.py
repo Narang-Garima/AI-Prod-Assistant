@@ -1,4 +1,4 @@
-from mcp.server.fastmcp import FastMCP  # for hosting the MCP server
+from mcp.server.fastmcp import FastMCP #for hosting the MCP server
 
 from prod_assistant.retriever.retrieval import Retriever
 from langchain_community.tools import DuckDuckGoSearchRun
@@ -22,50 +22,12 @@ duckduckgo = DuckDuckGoSearchRun()
 RELEVANCY_THRESHOLD = float(os.getenv("MCP_RELEVANCY_THRESHOLD", "0.35"))
 OVERLAP_THRESHOLD = float(os.getenv("MCP_OVERLAP_THRESHOLD", "0.15"))
 STOPWORDS = {
-    "the",
-    "a",
-    "an",
-    "is",
-    "are",
-    "for",
-    "to",
-    "in",
-    "on",
-    "of",
-    "and",
-    "or",
-    "with",
-    "under",
-    "best",
-    "top",
-    "buy",
-    "price",
-    "review",
-    "reviews",
-    "india",
+    "the", "a", "an", "is", "are", "for", "to", "in", "on", "of", "and", "or",
+    "with", "under", "best", "top", "buy", "price", "review", "reviews", "india",
 }
 PARENT_CATEGORY_KEYS = {
-    "phone": {
-        "iphone",
-        "pixel",
-        "galaxy",
-        "phone",
-        "mobile",
-        "oneplus",
-        "vivo",
-        "oppo",
-        "xiaomi",
-        "redmi",
-    },
-    "laptop": {
-        "laptop",
-        "macbook",
-        "notebook",
-        "vivobook",
-        "victus",
-        "pavilion",
-        "thinkpad",
-    },
+    "phone": {"iphone", "pixel", "galaxy", "phone", "mobile", "oneplus", "vivo", "oppo", "xiaomi", "redmi"},
+    "laptop": {"laptop", "macbook", "notebook", "vivobook", "victus", "pavilion", "thinkpad"},
     "audio": {"airpods", "earbuds", "headset", "earphone", "tws", "buds"},
     "watch": {"watch", "smartwatch", "fit", "band", "wearable"},
     "gaming": {"playstation", "ps5", "xbox", "controller", "gaming"},
@@ -82,7 +44,6 @@ def _map_parent_from_source_query(raw_category: str) -> str:
         if any(k in cat for k in keys):
             return parent
     return "other"
-
 
 # ---------- Helpers ----------
 def format_docs(docs) -> str:
@@ -122,8 +83,7 @@ def format_docs(docs) -> str:
             f"Category: {category}\n"
             f"Price: {price}\n"
             f"Rating: {rating}\n"
-            f"Matched Reviews:\n"
-            + ("\n".join(review_lines) if review_lines else "No reviews found")
+            f"Matched Reviews:\n" + ("\n".join(review_lines) if review_lines else "No reviews found")
         )
 
     return "\n\n---\n\n".join(blocks)
@@ -167,7 +127,7 @@ def _extract_model_markers(text: str) -> set[str]:
 
 def _extract_category_hint(query: str) -> str:
     m = re.search(r"\[category:\s*([^\]]+)\]", (query or ""), flags=re.IGNORECASE)
-    return m.group(1).strip().lower() if m else ""
+    return (m.group(1).strip().lower() if m else "")
 
 
 def _filter_blocks_by_category_hint(query: str, context: str) -> str:
@@ -209,7 +169,6 @@ def _filter_product_blocks_by_query(query: str, context: str) -> str:
 
     return "\n\n---\n\n".join(kept)
 
-
 # ---------- MCP Tools ----------
 @mcp.tool()
 async def get_product_info(query: str) -> str:
@@ -238,9 +197,7 @@ async def get_product_info(query: str) -> str:
             if missing_models:
                 return f"No local results found for exact model(s): {', '.join(missing_models)}."
 
-        retrieved_contexts = [
-            chunk for chunk in context.split("\n\n---\n\n") if chunk.strip()
-        ]
+        retrieved_contexts = [chunk for chunk in context.split("\n\n---\n\n") if chunk.strip()]
         relevancy_score = await evaluate_response_relevancy_async(
             query=query,
             response=context,
@@ -254,7 +211,6 @@ async def get_product_info(query: str) -> str:
     except Exception as e:
         return f"Error retrieving product info: {str(e)}"
 
-
 @mcp.tool()
 async def web_search(query: str) -> str:
     """Search the web using DuckDuckGo if retriever has no results."""
@@ -262,7 +218,6 @@ async def web_search(query: str) -> str:
         return duckduckgo.run(query)
     except Exception as e:
         return f"Error during web search: {str(e)}"
-
 
 # ---------- Run Server ----------
 if __name__ == "__main__":
