@@ -73,11 +73,21 @@ def test_format_docs_groups_and_dedupes_reviews():
     docs = [
         SimpleNamespace(
             page_content="Great camera and battery",
-            metadata={"product_id": "P1", "product_title": "Phone A", "price": "100", "rating": "4.5"},
+            metadata={
+                "product_id": "P1",
+                "product_title": "Phone A",
+                "price": "100",
+                "rating": "4.5",
+            },
         ),
         SimpleNamespace(
             page_content="Great camera and battery",
-            metadata={"product_id": "P1", "product_title": "Phone A", "price": "100", "rating": "4.5"},
+            metadata={
+                "product_id": "P1",
+                "product_title": "Phone A",
+                "price": "100",
+                "rating": "4.5",
+            },
         ),
     ]
     out = mod.format_docs(docs)

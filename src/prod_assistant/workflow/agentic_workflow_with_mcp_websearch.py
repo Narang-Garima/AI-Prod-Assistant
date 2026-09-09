@@ -43,7 +43,9 @@ class AgenticRAG:
 
         self.workflow = self._build_workflow()
         self.app = self.workflow.compile(checkpointer=self.checkpointer)
-        asyncio.run(self._safe_async_init())
+        # Discover tools lazily on the first MCP request. This lets the API
+        # import and answer health checks while the MCP service is starting.
+        self.mcp_tools = []
 
     async def _safe_async_init(self):
         """Load MCP tools safely during construction."""
@@ -131,7 +133,9 @@ class AgenticRAG:
             "features",
         }
         is_short_query = len(tokens) <= 8
-        return is_short_query and bool(tokens & pronouns) and bool(tokens & intent_words)
+        return (
+            is_short_query and bool(tokens & pronouns) and bool(tokens & intent_words)
+        )
 
     def _expand_with_previous_context(self, state: AgentState, query: str) -> str:
         if not self._is_followup_query(query):
@@ -171,9 +175,15 @@ class AgenticRAG:
                 "messages": [AIMessage(content="Please ask a product-related query.")],
             }
         if self._is_memory_query(last_message):
-            return {"last_route": "memory", "messages": [AIMessage(content="TOOL: memory")]}
+            return {
+                "last_route": "memory",
+                "messages": [AIMessage(content="TOOL: memory")],
+            }
         # Policy: always try local vector retrieval first, then fallback to web if needed.
-        return {"last_route": "retriever", "messages": [AIMessage(content="TOOL: retriever")]}
+        return {
+            "last_route": "retriever",
+            "messages": [AIMessage(content="TOOL: retriever")],
+        }
 
     def _memory_answer(self, state: AgentState):
         print("--- MEMORY ANSWER ---")
@@ -199,7 +209,10 @@ class AgenticRAG:
             "Answer briefly and concretely."
         )
         chain = prompt | self.llm | StrOutputParser()
-        response = chain.invoke({"transcript": transcript_text, "question": question}) or "I couldn't find that in our conversation."
+        response = (
+            chain.invoke({"transcript": transcript_text, "question": question})
+            or "I couldn't find that in our conversation."
+        )
         return {"last_route": "memory", "messages": [AIMessage(content=response)]}
 
     async def _vector_retriever(self, state: AgentState):
@@ -212,7 +225,9 @@ class AgenticRAG:
             return {
                 "last_mcp_tool": "get_product_info (not found)",
                 "last_route": "retriever",
-                "messages": [AIMessage(content="Retriever tool not found in MCP client.")],
+                "messages": [
+                    AIMessage(content="Retriever tool not found in MCP client.")
+                ],
             }
 
         try:
@@ -236,7 +251,9 @@ class AgenticRAG:
             return {
                 "last_mcp_tool": "web_search (not found)",
                 "last_route": "websearch",
-                "messages": [AIMessage(content="Web search tool not found in MCP client.")],
+                "messages": [
+                    AIMessage(content="Web search tool not found in MCP client.")
+                ],
             }
 
         try:
@@ -251,7 +268,9 @@ class AgenticRAG:
             "messages": [AIMessage(content=context)],
         }
 
-    def _grade_documents(self, state: AgentState) -> Literal["generator", "rewriter", "websearch", "fallback"]:
+    def _grade_documents(
+        self, state: AgentState
+    ) -> Literal["generator", "rewriter", "websearch", "fallback"]:
         print("--- GRADER ---")
         question = self._latest_human_query(state["messages"])
         docs = state["messages"][-1].content
@@ -283,11 +302,16 @@ class AgenticRAG:
         question = self._latest_human_query(state["messages"])
         docs = state["messages"][-1].content
 
-        prompt = ChatPromptTemplate.from_template(PROMPT_REGISTRY[PromptType.PRODUCT_BOT].template)
+        prompt = ChatPromptTemplate.from_template(
+            PROMPT_REGISTRY[PromptType.PRODUCT_BOT].template
+        )
         chain = prompt | self.llm | StrOutputParser()
 
         try:
-            response = chain.invoke({"context": docs, "question": question}) or "No response generated."
+            response = (
+                chain.invoke({"context": docs, "question": question})
+                or "No response generated."
+            )
         except Exception as e:
             response = f"Error generating response: {e}"
 
@@ -323,7 +347,7 @@ class AgenticRAG:
                         f"Try web search for: {question}"
                     )
                 )
-            ]
+            ],
         }
 
     def _build_workflow(self):
@@ -342,7 +366,11 @@ class AgenticRAG:
             lambda state: (
                 "Memory"
                 if "TOOL: memory" in state["messages"][-1].content
-                else ("Retriever" if "TOOL: retriever" in state["messages"][-1].content else END)
+                else (
+                    "Retriever"
+                    if "TOOL: retriever" in state["messages"][-1].content
+                    else END
+                )
             ),
             {"Memory": "Memory", "Retriever": "Retriever", END: END},
         )
@@ -377,9 +405,9 @@ class AgenticRAG:
         tool_name = result.get("last_mcp_tool", "none")
         route_name = result.get("last_route", "none")
         return (
-            f'{result["messages"][-1].content}\n\n'
-            f'[MCP Tool Called: {tool_name}]\n'
-            f'[Route: {route_name}]'
+            f"{result['messages'][-1].content}\n\n"
+            f"[MCP Tool Called: {tool_name}]\n"
+            f"[Route: {route_name}]"
         )
 
 

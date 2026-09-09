@@ -17,15 +17,17 @@ class PromptTemplate:
 
     def format(self, **kwargs) -> str:
         # Validate placeholders before formatting
-        missing = [
-            f for f in self.required_placeholders() if f not in kwargs
-        ]
+        missing = [f for f in self.required_placeholders() if f not in kwargs]
         if missing:
             raise ValueError(f"Missing placeholders: {missing}")
         return self.template.format(**kwargs)
 
     def required_placeholders(self):
-        return [field_name for _, field_name, _, _ in string.Formatter().parse(self.template) if field_name]
+        return [
+            field_name
+            for _, field_name, _, _ in string.Formatter().parse(self.template)
+            if field_name
+        ]
 
 
 # Central Registry
@@ -51,6 +53,6 @@ PROMPT_REGISTRY: Dict[PromptType, PromptTemplate] = {
 
         YOUR ANSWER:
         """,
-        description="Handles ecommerce QnA & product recommendation flows"
+        description="Handles ecommerce QnA & product recommendation flows",
     )
 }

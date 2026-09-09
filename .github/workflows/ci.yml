@@ -1,43 +1,19 @@
-name: Run Test Suite
+name: CI
 
 on:
   push:
-    branches:
-      - main
-      - master
   pull_request:
-    branches:
-      - main
-      - master
-  workflow_dispatch:
 
 jobs:
-  tests:
+  test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest
-
-      - name: Syntax smoke check
-        run: |
-          python -m py_compile scrape_buddy.py
-          python -m py_compile scrape_buddy_powerbi.py
-          python -m py_compile src/prod_assistant/router/main.py
-          python -m py_compile src/prod_assistant/workflow/agentic_workflow_with_mcp_websearch.py
-
-      - name: Run tests
-        run: python -m pytest -q test
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - run: ruff check src test
+      - run: pytest -q

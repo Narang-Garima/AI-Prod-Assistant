@@ -21,6 +21,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 # ----------------- Helpers: parsing -----------------
 
+
 def _first_text(soup: BeautifulSoup, selectors: List[str]) -> str:
     for sel in selectors:
         el = soup.select_one(sel)
@@ -81,10 +82,15 @@ def _extract_total_reviews_from_count(text: str) -> str:
 
 def _looks_like_flipkart_soft_404(html: str) -> bool:
     t = (html or "").lower()
-    return ("moved or deleted" in t) or ("go to homepage" in t) or ("page you are looking for" in t)
+    return (
+        ("moved or deleted" in t)
+        or ("go to homepage" in t)
+        or ("page you are looking for" in t)
+    )
 
 
 # ----------------- Browser helpers -----------------
+
 
 def _make_driver(version_main: int = 145, headless: bool = False) -> uc.Chrome:
     options = uc.ChromeOptions()
@@ -110,7 +116,9 @@ def _close_popups(driver, timeout: float = 2.0) -> None:
         closed = False
         for by, sel in candidates:
             try:
-                el = WebDriverWait(driver, 0.25).until(EC.presence_of_element_located((by, sel)))
+                el = WebDriverWait(driver, 0.25).until(
+                    EC.presence_of_element_located((by, sel))
+                )
                 try:
                     el.click()
                 except Exception:
@@ -132,6 +140,7 @@ BUYER_ANCHORS = [
     "Silver Reviewer",
     "Bronze Reviewer",
 ]
+
 
 def _extract_review_cards_from_html(html: str) -> List[str]:
     """
@@ -161,7 +170,9 @@ def _extract_review_cards_from_html(html: str) -> List[str]:
             txt = container.get_text(" ", strip=True)
             txt = re.sub(r"\s+", " ", txt).strip()
 
-            if any(a.lower() in txt.lower() for a in BUYER_ANCHORS) and (120 <= len(txt) <= 1600):
+            if any(a.lower() in txt.lower() for a in BUYER_ANCHORS) and (
+                120 <= len(txt) <= 1600
+            ):
                 if re.search(r"\b(year|month|day)s?\s+ago\b", txt, flags=re.IGNORECASE):
                     best = txt
                     break
@@ -183,7 +194,12 @@ def clean_review_card_text(card: str) -> str:
     t = re.sub(r"\s+", " ", (card or "")).strip()
 
     # remove header summary like "4.6 Excellent based on..."
-    t = re.sub(r"^\d+(\.\d+)?\s+\w+\s+based on.*?(Verified|Certified)\s+Buyers?\s*", "", t, flags=re.IGNORECASE)
+    t = re.sub(
+        r"^\d+(\.\d+)?\s+\w+\s+based on.*?(Verified|Certified)\s+Buyers?\s*",
+        "",
+        t,
+        flags=re.IGNORECASE,
+    )
 
     # remove UI words
     t = re.sub(r"\bShow all reviews\b", "", t, flags=re.IGNORECASE)
@@ -204,13 +220,15 @@ def clean_review_card_text(card: str) -> str:
         r"^\s*\d+\s*(Fabulous!|Excellent|Brilliant|Must buy!|Great|Good|Very Good|Average|Poor|Terrible)\s*",
         "",
         t,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     t = re.sub(r"\s+", " ", t).strip()
 
     # filter Q&A noise (common on phone pages)
-    if re.search(r"\b(does this|is this|can i|how much|what is)\b", t, flags=re.IGNORECASE):
+    if re.search(
+        r"\b(does this|is this|can i|how much|what is)\b", t, flags=re.IGNORECASE
+    ):
         # don’t fully drop if it also contains clear review sentiment, but generally Q&A is noise
         if len(t) < 120:
             return ""
@@ -226,7 +244,9 @@ def _try_click_show_all_reviews(driver) -> bool:
     ]
     for xp in xpaths:
         try:
-            el = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH, xp)))
+            el = WebDriverWait(driver, 3).until(
+                EC.presence_of_element_located((By.XPATH, xp))
+            )
             driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
             time.sleep(0.25)
             driver.execute_script("arguments[0].click();", el)
@@ -237,6 +257,7 @@ def _try_click_show_all_reviews(driver) -> bool:
 
 
 # ----------------- Data model -----------------
+
 
 @dataclass
 class ProductRow:
@@ -250,14 +271,22 @@ class ProductRow:
 
 # ----------------- Scraper -----------------
 
+
 class FlipkartScraper:
-    def __init__(self, output_dir: str = "data", chrome_version_main: int = 145, headless: bool = False):
+    def __init__(
+        self,
+        output_dir: str = "data",
+        chrome_version_main: int = 145,
+        headless: bool = False,
+    ):
         self.output_dir = output_dir
         self.chrome_version_main = chrome_version_main
         self.headless = headless
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def _get_reviews(self, driver, product_url: str, total_needed: int = 50) -> List[str]:
+    def _get_reviews(
+        self, driver, product_url: str, total_needed: int = 50
+    ) -> List[str]:
         """
         Strategy:
         1) Try /product-reviews/{itm}?pid={pid}
@@ -270,7 +299,9 @@ class FlipkartScraper:
         if itm_id != "N/A" and pid != "N/A":
             review_url = f"https://www.flipkart.com/product-reviews/{itm_id}?pid={pid}"
             driver.get(review_url)
-            WebDriverWait(driver, 20).until(lambda d: d.execute_script("return document.readyState") == "complete")
+            WebDriverWait(driver, 20).until(
+                lambda d: d.execute_script("return document.readyState") == "complete"
+            )
             _close_popups(driver)
 
             html = driver.page_source
@@ -304,7 +335,9 @@ class FlipkartScraper:
 
         # ---- 2) Fallback: product page ----
         driver.get(product_url)
-        WebDriverWait(driver, 25).until(lambda d: d.execute_script("return document.readyState") == "complete")
+        WebDriverWait(driver, 25).until(
+            lambda d: d.execute_script("return document.readyState") == "complete"
+        )
         _close_popups(driver)
 
         # scroll toward reviews
@@ -333,7 +366,9 @@ class FlipkartScraper:
 
         return reviews[:total_needed]
 
-    def scrape_flipkart_products(self, query: str, max_products: int = 1, review_count: int = 2) -> List[List[str]]:
+    def scrape_flipkart_products(
+        self, query: str, max_products: int = 1, review_count: int = 2
+    ) -> List[List[str]]:
         """
         Backward-compatible for your Streamlit:
         - max_products: products per query
@@ -342,18 +377,24 @@ class FlipkartScraper:
         review_count = max(1, min(int(review_count), 50))
 
         search_driver = _make_driver(self.chrome_version_main, headless=self.headless)
-        review_driver = _make_driver(self.chrome_version_main, headless=self.headless)  # reused
+        review_driver = _make_driver(
+            self.chrome_version_main, headless=self.headless
+        )  # reused
 
         products: List[ProductRow] = []
         try:
             search_url = f"https://www.flipkart.com/search?q={query.replace(' ', '+')}"
             search_driver.get(search_url)
 
-            WebDriverWait(search_driver, 25).until(lambda d: d.execute_script("return document.readyState") == "complete")
+            WebDriverWait(search_driver, 25).until(
+                lambda d: d.execute_script("return document.readyState") == "complete"
+            )
             _close_popups(search_driver)
 
             WebDriverWait(search_driver, 25).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-id], a[href]"))
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, "div[data-id], a[href]")
+                )
             )
 
             # load a bit more
@@ -374,13 +415,16 @@ class FlipkartScraper:
                 soup = BeautifulSoup(html, "html.parser")
 
                 # title: add more fallbacks (phones often differ)
-                title = _first_text(soup, [
-                    "a.pIpigb",
-                    "div.KzDlHZ",
-                    "div._4rR01T",
-                    "a[title]",
-                    "img[alt]",         # last resort
-                ])
+                title = _first_text(
+                    soup,
+                    [
+                        "a.pIpigb",
+                        "div.KzDlHZ",
+                        "div._4rR01T",
+                        "a[title]",
+                        "img[alt]",  # last resort
+                    ],
+                )
                 # prefer attribute title if present
                 title_attr = _first_attr(soup, ["a[title]"], "title")
                 if title_attr:
@@ -392,34 +436,47 @@ class FlipkartScraper:
                     if alt:
                         title = alt.strip()
 
-                price = _first_text(soup, [
-                    "div.hZ3P6w",
-                    "div.Nx9bqj",
-                    "div._30jeq3",
-                    "div._1_WHN1",
-                ])
+                price = _first_text(
+                    soup,
+                    [
+                        "div.hZ3P6w",
+                        "div.Nx9bqj",
+                        "div._30jeq3",
+                        "div._1_WHN1",
+                    ],
+                )
 
-                rating = _first_text(soup, [
-                    "div.MKiFS6",
-                    "div.XQDdHH",
-                    "div._3LWZlK",
-                ])
+                rating = _first_text(
+                    soup,
+                    [
+                        "div.MKiFS6",
+                        "div.XQDdHH",
+                        "div._3LWZlK",
+                    ],
+                )
                 m = re.search(r"(\d+(\.\d+)?)", rating)
                 rating = m.group(1) if m else rating
 
-                rating_count = _first_text(soup, [
-                    "span.PvbNMB",
-                    "span.Wphh3N",
-                    "span._2_R_DZ",
-                ])
+                rating_count = _first_text(
+                    soup,
+                    [
+                        "span.PvbNMB",
+                        "span.Wphh3N",
+                        "span._2_R_DZ",
+                    ],
+                )
                 total_reviews = _extract_total_reviews_from_count(rating_count)
 
-                href = _first_attr(soup, [
-                    "a.pIpigb[href]",
-                    "a.GnxRXv[href]",
-                    "a[href*='/p/']",
-                    "a[href]",
-                ], "href")
+                href = _first_attr(
+                    soup,
+                    [
+                        "a.pIpigb[href]",
+                        "a.GnxRXv[href]",
+                        "a[href*='/p/']",
+                        "a[href]",
+                    ],
+                    "href",
+                )
 
                 if price == "N/A" or not href:
                     continue
@@ -428,23 +485,39 @@ class FlipkartScraper:
                 pid, itm_id = _extract_ids_from_href(href)
 
                 # reviews: fetch up to 50, store only review_count
-                all_reviews = self._get_reviews(review_driver, product_link, total_needed=50)
+                all_reviews = self._get_reviews(
+                    review_driver, product_link, total_needed=50
+                )
                 selected = all_reviews[:review_count]
                 top_reviews = " || ".join(selected) if selected else "No reviews found"
 
                 # product_id: prefer pid, else itm_id, else data-id (if exists)
-                product_id = pid if pid != "N/A" else (itm_id if itm_id != "N/A" else "N/A")
+                product_id = (
+                    pid if pid != "N/A" else (itm_id if itm_id != "N/A" else "N/A")
+                )
 
-                products.append(ProductRow(
-                    product_id=product_id,
-                    product_title=title,
-                    rating=rating if rating else "N/A",
-                    total_reviews=total_reviews,
-                    price=price,
-                    top_reviews=top_reviews,
-                ))
+                products.append(
+                    ProductRow(
+                        product_id=product_id,
+                        product_title=title,
+                        rating=rating if rating else "N/A",
+                        total_reviews=total_reviews,
+                        price=price,
+                        top_reviews=top_reviews,
+                    )
+                )
 
-            return [[p.product_id, p.product_title, p.rating, p.total_reviews, p.price, p.top_reviews] for p in products]
+            return [
+                [
+                    p.product_id,
+                    p.product_title,
+                    p.rating,
+                    p.total_reviews,
+                    p.price,
+                    p.top_reviews,
+                ]
+                for p in products
+            ]
 
         finally:
             try:
@@ -456,7 +529,9 @@ class FlipkartScraper:
             except Exception:
                 pass
 
-    def save_to_csv(self, data: List[List[str]], filename: str = "data/product_reviews.csv") -> str:
+    def save_to_csv(
+        self, data: List[List[str]], filename: str = "data/product_reviews.csv"
+    ) -> str:
         if os.path.isabs(filename):
             path = filename
         elif os.path.dirname(filename):
@@ -467,15 +542,28 @@ class FlipkartScraper:
 
         with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["product_id", "product_title", "rating", "total_reviews", "price", "top_reviews"])
+            writer.writerow(
+                [
+                    "product_id",
+                    "product_title",
+                    "rating",
+                    "total_reviews",
+                    "price",
+                    "top_reviews",
+                ]
+            )
             writer.writerows(data)
 
         return path
 
 
 if __name__ == "__main__":
-    scraper = FlipkartScraper(output_dir="data", chrome_version_main=145, headless=False)
-    rows = scraper.scrape_flipkart_products("gaming laptop", max_products=4, review_count=5)
+    scraper = FlipkartScraper(
+        output_dir="data", chrome_version_main=145, headless=False
+    )
+    rows = scraper.scrape_flipkart_products(
+        "gaming laptop", max_products=4, review_count=5
+    )
     out = scraper.save_to_csv(rows, "data/product_reviews.csv")
     print("Saved:", out)
     print("Rows scraped:", len(rows))

@@ -56,7 +56,9 @@ class ModelLoader:
 
             api_key = self.api_key_mgr.get("GOOGLE_API_KEY")
             if not api_key:
-                raise EnvironmentError("GOOGLE_API_KEY is missing. Check .env loading / environment variables.")
+                raise EnvironmentError(
+                    "GOOGLE_API_KEY is missing. Check .env loading / environment variables."
+                )
 
             # Extra safety: set env var too (prevents ADC fallback in some setups)
             os.environ["GOOGLE_API_KEY"] = api_key
@@ -79,8 +81,7 @@ class ModelLoader:
     def load_llm(self):
         llm_block = self.config["llm"]
         provider_key = os.getenv("LLM_PROVIDER", "openai")
-        #provider_key = os.getenv("LLM_PROVIDER", "groq")
-
+        # provider_key = os.getenv("LLM_PROVIDER", "groq")
 
         if provider_key not in llm_block:
             log.error("LLM provider not found in config", provider=provider_key)
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     embeddings = loader.load_embeddings()
     print(f"Embedding Model Loaded: {embeddings}")
     result = embeddings.embed_query("Hello, how are you?")
-    #print(f"Embedding Result: {result}")
+    # print(f"Embedding Result: {result}")
 
     # Test LLM
     llm = loader.load_llm()

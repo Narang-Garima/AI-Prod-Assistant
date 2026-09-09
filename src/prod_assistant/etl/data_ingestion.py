@@ -50,7 +50,9 @@ class DataIngestion:
         self.vectorstore: Optional[AstraDBVectorStore] = None
 
     def _load_env_variables(self) -> None:
-        load_dotenv(dotenv_path=Path(__file__).resolve().parents[3] / ".env", override=True)
+        load_dotenv(
+            dotenv_path=Path(__file__).resolve().parents[3] / ".env", override=True
+        )
 
         required_vars = [
             "GOOGLE_API_KEY",
@@ -68,10 +70,14 @@ class DataIngestion:
         self.google_api_key = _safe_str(os.getenv("GOOGLE_API_KEY"))
 
         if not self.db_application_token.startswith("AstraCS:"):
-            raise EnvironmentError("ASTRA_DB_APPLICATION_TOKEN must start with 'AstraCS:'")
+            raise EnvironmentError(
+                "ASTRA_DB_APPLICATION_TOKEN must start with 'AstraCS:'"
+            )
 
         if self.db_keyspace == "N/A":
-            raise EnvironmentError("ASTRA_DB_KEYSPACE is empty. Set it (often 'default_keyspace').")
+            raise EnvironmentError(
+                "ASTRA_DB_KEYSPACE is empty. Set it (often 'default_keyspace')."
+            )
 
     def _test_astra_connection(self) -> None:
         from astrapy import DataAPIClient
@@ -98,12 +104,26 @@ class DataIngestion:
     def _load_csv(self, csv_path: str) -> pd.DataFrame:
         df = pd.read_csv(csv_path)
 
-        expected = {"product_id", "product_title", "rating", "total_reviews", "price", "top_reviews"}
+        expected = {
+            "product_id",
+            "product_title",
+            "rating",
+            "total_reviews",
+            "price",
+            "top_reviews",
+        }
         if not expected.issubset(set(df.columns)):
             raise ValueError(f"CSV must contain columns: {expected}")
 
         # sanitize key columns
-        for c in ["product_id", "product_title", "rating", "total_reviews", "price", "top_reviews"]:
+        for c in [
+            "product_id",
+            "product_title",
+            "rating",
+            "total_reviews",
+            "price",
+            "top_reviews",
+        ]:
             df[c] = df[c].apply(_safe_str)
 
         return df
@@ -136,7 +156,9 @@ class DataIngestion:
             for idx, review in enumerate(reviews, start=1):
                 meta = dict(base_metadata)
                 meta["review_index"] = int(idx)  # safe int
-                documents.append(Document(page_content=_safe_str(review), metadata=meta))
+                documents.append(
+                    Document(page_content=_safe_str(review), metadata=meta)
+                )
 
         print(f"Transformed {len(documents)} documents.")
         return documents
@@ -152,7 +174,9 @@ class DataIngestion:
             namespace=self.db_keyspace,
         )
 
-    def store_in_vector_db(self, documents: List[Document]) -> Tuple[AstraDBVectorStore, List[str]]:
+    def store_in_vector_db(
+        self, documents: List[Document]
+    ) -> Tuple[AstraDBVectorStore, List[str]]:
         vstore = self.get_vectorstore()
         inserted_ids = vstore.add_documents(documents)
         print(f"Inserted {len(inserted_ids)} documents into AstraDB.")

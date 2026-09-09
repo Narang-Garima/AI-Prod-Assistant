@@ -36,7 +36,13 @@ def _is_noise_review(text: str) -> bool:
     # e.g. "+2955 Camera 4.6 Battery 4.3 ..."
     if re.search(r"^\+\d+\s+camera\s+\d", t):
         return True
-    if "camera" in t and "battery" in t and "display" in t and "performance" in t and t.startswith("+"):
+    if (
+        "camera" in t
+        and "battery" in t
+        and "display" in t
+        and "performance" in t
+        and t.startswith("+")
+    ):
         return True
 
     # Very short fragments are noise
@@ -70,7 +76,9 @@ def format_docs_as_context_strings(docs: List[Document]) -> List[str]:
     return out
 
 
-def build_grounded_response(query: str, docs: List[Document], max_items: int = 5) -> str:
+def build_grounded_response(
+    query: str, docs: List[Document], max_items: int = 5
+) -> str:
     """
     This is the MOST IMPORTANT change:
     Your earlier response was unrelated to contexts, so Context Precision became 0.
@@ -90,8 +98,7 @@ def build_grounded_response(query: str, docs: List[Document], max_items: int = 5
         snippet = snippet[:220] + ("..." if len(snippet) > 220 else "")
 
         lines.append(
-            f"{i}. {title} | Rating: {rating} | Price: {price}\n"
-            f"   Evidence: {snippet}"
+            f"{i}. {title} | Rating: {rating} | Price: {price}\n   Evidence: {snippet}"
         )
 
     lines.append("\nThese points are taken directly from the retrieved review text.")
@@ -156,7 +163,9 @@ class Retriever:
         fetch_k = int(self.config.get("retriever", {}).get("fetch_k", 50))
         lambda_mult = float(self.config.get("retriever", {}).get("lambda_mult", 0.7))
 
-        use_compression = bool(self.config.get("retriever", {}).get("use_compression", False))
+        use_compression = bool(
+            self.config.get("retriever", {}).get("use_compression", False)
+        )
 
         print(f"TOP_K from config: {top_k}")
         print(f"USE_COMPRESSION: {use_compression}")

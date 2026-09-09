@@ -63,8 +63,12 @@ def test_append_history_rows_is_append_only(tmp_path: Path):
         ["PID1", "Phone A", "4.5", "100", "10000", "good phone"],
         ["PID2", "Phone B", "4.2", "200", "12000", "nice battery"],
     ]
-    count1 = mod.append_history_rows(str(out), rows, "phones", "run-1", "2026-01-01T00:00:00Z")
-    count2 = mod.append_history_rows(str(out), rows[:1], "phones", "run-2", "2026-01-02T00:00:00Z")
+    count1 = mod.append_history_rows(
+        str(out), rows, "phones", "run-1", "2026-01-01T00:00:00Z"
+    )
+    count2 = mod.append_history_rows(
+        str(out), rows[:1], "phones", "run-2", "2026-01-02T00:00:00Z"
+    )
     assert count1 == 2
     assert count2 == 1
     lines = out.read_text(encoding="utf-8").strip().splitlines()

@@ -2,19 +2,19 @@
 # FINAL STABLE VERSION — NO THREADING, NO ERRORS, ONE CSV
 
 import time
-from typing import List, Dict
+from typing import List
 
 from prod_assistant.etl.data_scrapper_working_single import FlipkartScraper
 
 
 def scrape_multiple_products(
-        queries: List[str],
-        max_products: int = 2,
-        review_count: int = 3,
-        output_csv: str = "data/multi_output.csv",
-        chrome_version_main: int = 145,
-        headless: bool = False,
-        retries: int = 2,
+    queries: List[str],
+    max_products: int = 2,
+    review_count: int = 3,
+    output_csv: str = "data/multi_output.csv",
+    chrome_version_main: int = 145,
+    headless: bool = False,
+    retries: int = 2,
 ):
     """
     FINAL SAFE VERSION:
@@ -38,9 +38,7 @@ def scrape_multiple_products(
         for attempt in range(1, retries + 1):
             try:
                 rows = scraper.scrape_flipkart_products(
-                    q,
-                    max_products=max_products,
-                    review_count=review_count
+                    q, max_products=max_products, review_count=review_count
                 )
 
                 print(f"   ✔ Completed '{q}' → {len(rows)} rows")
