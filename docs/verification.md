@@ -13,7 +13,7 @@ The existing implementation already included:
 - Google embeddings and Astra DB vector storage
 - a LangGraph workflow with direct, memory, retrieval, grading, rewrite, web-search, generation, and fallback routes
 - MCP tools for local product retrieval and web search
-- a FastAPI chat interface, analytics dashboard, poster download, and SQLite chat history
+- a FastAPI chat interface, analytics dashboard, and SQLite chat history
 - a Streamlit interface for scraping and ingestion
 - inline RAGAS response-relevancy evaluation
 
@@ -65,7 +65,7 @@ The first FastAPI and MCP imports exposed tight import-time coupling to Google a
 - I added a code-backed Mermaid architecture diagram and a screenshot captured from the real local interface.
 - I removed older diagrams that showed unimplemented fine-tuning, guardrails, Bedrock, Redis, DynamoDB, and similar services.
 - I retained Docker, Kubernetes, EKS, and GitHub Actions as optional infrastructure definitions, not as proof of deployment.
-- I removed a duplicate poster and a hard-coded ECR account identifier.
+- I removed misleading legacy posters and a hard-coded ECR account identifier.
 
 ### Evaluation and Windows fixes
 

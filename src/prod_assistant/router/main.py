@@ -10,7 +10,7 @@ import uvicorn
 from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form, Response, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -32,7 +32,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 DB_PATH = os.getenv("CHAT_HISTORY_DB", "data/chat_history.db")
 REVIEWS_HISTORY_CSV = os.getenv("REVIEWS_HISTORY_CSV", "data/product_reviews_history.csv")
-POSTER_DIR = os.getenv("POSTER_DIR", "poster")
 
 allowed_origins = [
     origin.strip()
@@ -252,10 +251,6 @@ def _build_dashboard_payload(category_filter: str) -> dict:
     }
 
 
-def _resolve_poster_dir() -> Path:
-    return Path(POSTER_DIR).resolve()
-
-
 @app.get("/", response_class=HTMLResponse)
 async def index_v1(request: Request):
     return templates.TemplateResponse(request, "chat_v1.html")
@@ -369,37 +364,6 @@ def get_thread_history(thread_id: str):
         }
         for r in rows
     ]
-
-
-@app.get("/_posters")
-def list_posters():
-    poster_dir = _resolve_poster_dir()
-    if not poster_dir.exists() or not poster_dir.is_dir():
-        return {"files": []}
-
-    files = sorted(
-        [p.name for p in poster_dir.iterdir() if p.is_file() and p.suffix.lower() == ".pdf"],
-        key=str.lower,
-    )
-    return {"files": files}
-
-
-@app.get("/download/poster/{filename}")
-def download_poster(filename: str):
-    if not filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
-
-    poster_dir = _resolve_poster_dir()
-    if not poster_dir.exists() or not poster_dir.is_dir():
-        raise HTTPException(status_code=404, detail="Poster directory not found.")
-
-    target = (poster_dir / filename).resolve()
-    if target.parent != poster_dir:
-        raise HTTPException(status_code=400, detail="Invalid filename.")
-    if not target.exists() or not target.is_file():
-        raise HTTPException(status_code=404, detail="PDF not found.")
-
-    return FileResponse(path=str(target), filename=target.name, media_type="application/pdf")
 
 
 @app.post("/get")
