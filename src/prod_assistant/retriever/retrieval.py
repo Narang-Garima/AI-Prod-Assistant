@@ -14,10 +14,6 @@ from langchain_core.documents import Document
 from prod_assistant.utils.config_loader import load_config
 from prod_assistant.utils.model_loader import ModelLoader
 
-from prod_assistant.evaluation.ragas_eval import (
-    evaluate_context_precision,
-    evaluate_response_relevancy,
-)
 
 
 def _safe_str(x: Any, default: str = "N/A") -> str:
@@ -214,6 +210,11 @@ class Retriever:
 # MAIN TEST BLOCK
 # -------------------------
 if __name__ == "__main__":
+    from prod_assistant.evaluation.ragas_eval import (
+        evaluate_context_precision,
+        evaluate_response_relevancy,
+    )
+
     user_query = "Can you suggest any sunscreen for women specially for sensitive skin?"
 
     retriever_obj = Retriever()

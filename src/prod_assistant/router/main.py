@@ -3,35 +3,62 @@ import re
 import sqlite3
 import csv
 import json
+from contextlib import asynccontextmanager
 from collections import defaultdict
 from datetime import datetime, timezone
 import uvicorn
 from pathlib import Path
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form, Response, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from langchain_core.messages import HumanMessage
 from prod_assistant.workflow.agentic_workflow_with_mcp_websearch import AgenticRAG
 import uuid
 
-app = FastAPI()
+
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    _ensure_db()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 DB_PATH = os.getenv("CHAT_HISTORY_DB", "data/chat_history.db")
 REVIEWS_HISTORY_CSV = os.getenv("REVIEWS_HISTORY_CSV", "data/product_reviews_history.csv")
 POSTER_DIR = os.getenv("POSTER_DIR", "poster")
 
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ALLOWED_ORIGINS",
+        "http://127.0.0.1:8000,http://localhost:8000",
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-rag_agent = AgenticRAG()
+rag_agent: AgenticRAG | None = None
+
+
+def _get_rag_agent() -> AgenticRAG:
+    global rag_agent
+    if rag_agent is None:
+        rag_agent = AgenticRAG()
+    return rag_agent
 
 _CATEGORY_RULES = [
     ("phone", {"iphone", "pixel", "galaxy", "phone", "mobile", "oneplus", "vivo", "oppo", "xiaomi", "redmi"}),
@@ -229,14 +256,34 @@ def _resolve_poster_dir() -> Path:
     return Path(POSTER_DIR).resolve()
 
 
-@app.on_event("startup")
-def startup() -> None:
-    _ensure_db()
-
-
 @app.get("/", response_class=HTMLResponse)
 async def index_v1(request: Request):
-    return templates.TemplateResponse("chat_v1.html", {"request": request})
+    return templates.TemplateResponse(request, "chat_v1.html")
+
+
+@app.get("/health")
+def health():
+    required_retrieval_settings = [
+        "GOOGLE_API_KEY",
+        "ASTRA_DB_API_ENDPOINT",
+        "ASTRA_DB_APPLICATION_TOKEN",
+        "ASTRA_DB_KEYSPACE",
+    ]
+    provider = os.getenv("LLM_PROVIDER", "openai").strip().lower()
+    provider_key = {
+        "openai": "OPENAI_API_KEY",
+        "google": "GOOGLE_API_KEY",
+        "groq": "GROQ_API_KEY",
+    }.get(provider)
+
+    return {
+        "status": "ok",
+        "application": "shopbuddy",
+        "llm_provider": provider,
+        "llm_configured": bool(provider_key and os.getenv(provider_key)),
+        "local_retrieval_configured": all(os.getenv(name) for name in required_retrieval_settings),
+        "mcp_server_url": os.getenv("MCP_SERVER_URL", "http://127.0.0.1:8001/mcp"),
+    }
 
 
 @app.get("/_categories")
@@ -262,9 +309,9 @@ async def dashboard(request: Request, category: str = "all"):
     ]
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "selected_category": category_filter,
             "categories_json": json.dumps(categories),
             "compare_options_json": json.dumps(payload["compare_options"]),
@@ -367,13 +414,29 @@ async def chat(
         thread_id = request.cookies.get("thread_id")
     if not thread_id:
         thread_id = f"thread-{uuid.uuid4().hex}"
-    response.set_cookie("thread_id", thread_id, httponly=False, samesite="lax")
+    response.set_cookie(
+        "thread_id",
+        thread_id,
+        httponly=True,
+        secure=os.getenv("COOKIE_SECURE", "false").strip().lower() == "true",
+        samesite="lax",
+    )
 
     user_msg = (msg or "").strip()
+    if not user_msg:
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
     category = (category_hint or "auto").strip().lower()
     effective_query = user_msg if category == "auto" else f"[Category: {category}] {user_msg}"
 
-    answer = await rag_agent.run(effective_query, thread_id=thread_id)
+    try:
+        answer = await _get_rag_agent().run(effective_query, thread_id=thread_id)
+    except (EnvironmentError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Assistant dependencies are not configured: {exc}",
+        ) from exc
+    if answer.startswith("Error generating response:"):
+        raise HTTPException(status_code=502, detail=answer.split("\n", 1)[0])
     if user_msg:
         _save_turn(thread_id=thread_id, user_message=user_msg, assistant_message=answer)
     return answer

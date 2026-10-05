@@ -11,7 +11,7 @@ from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 
 from prod_assistant.prompt_library.prompts import PROMPT_REGISTRY, PromptType
-from prod_assistant.retriever.retrieval import Retriever
+from prod_assistant.utils.config_loader import load_config
 from prod_assistant.utils.model_loader import ModelLoader
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
@@ -26,11 +26,13 @@ class AgenticRAG:
         last_route: str
 
     def __init__(self):
-        self.retriever_obj = Retriever()
+        self.config = load_config()
         self.model_loader = ModelLoader()
         self.llm = self.model_loader.load_llm()
         self.checkpointer = MemorySaver()
-        self.max_rewrites = 2
+        agent_config = self.config.get("agentic_rag", {})
+        self.max_rewrites = int(agent_config.get("max_rewrites", 2))
+        self.recursion_limit = int(agent_config.get("recursion_limit", 25))
 
         self.mcp_client = MultiServerMCPClient(
             {
@@ -40,10 +42,10 @@ class AgenticRAG:
                 }
             }
         )
+        self.mcp_tools = []
 
         self.workflow = self._build_workflow()
         self.app = self.workflow.compile(checkpointer=self.checkpointer)
-        asyncio.run(self._safe_async_init())
 
     async def _safe_async_init(self):
         """Load MCP tools safely during construction."""
@@ -261,6 +263,8 @@ class AgenticRAG:
             return "websearch"
         if "Error invoking retriever:" in (docs or ""):
             return "websearch"
+        if "Error retrieving product info:" in (docs or ""):
+            return "websearch"
         if rewrite_count >= self.max_rewrites:
             return "websearch"
 
@@ -288,8 +292,8 @@ class AgenticRAG:
 
         try:
             response = chain.invoke({"context": docs, "question": question}) or "No response generated."
-        except Exception as e:
-            response = f"Error generating response: {e}"
+        except Exception:
+            response = "Error generating response: model provider request failed. Check network and credentials."
 
         return {"messages": [AIMessage(content=response)]}
 
@@ -306,8 +310,8 @@ class AgenticRAG:
 
         try:
             new_q = chain.invoke({"question": question}).strip()
-        except Exception as e:
-            new_q = f"Error rewriting query: {e}"
+        except Exception:
+            new_q = question
 
         return {"rewrite_count": rc, "messages": [HumanMessage(content=new_q)]}
 
@@ -319,12 +323,21 @@ class AgenticRAG:
             "messages": [
                 AIMessage(
                     content=(
-                        f"I could not find reliable local results after {self.max_rewrites} rewrites. "
-                        f"Try web search for: {question}"
+                        "I could not retrieve reliable local or web evidence for this request. "
+                        f"Please try again later or refine the product query: {question}"
                     )
                 )
             ]
         }
+
+    def _route_after_websearch(self, state: AgentState) -> Literal["generator", "fallback"]:
+        context = state["messages"][-1].content or ""
+        failure_markers = (
+            "Error during web search:",
+            "No web results found.",
+            "No data from web",
+        )
+        return "fallback" if any(marker in context for marker in failure_markers) else "generator"
 
     def _build_workflow(self):
         workflow = StateGraph(self.AgentState)
@@ -358,7 +371,11 @@ class AgenticRAG:
             },
         )
         workflow.add_edge("Rewriter", "Assistant")
-        workflow.add_edge("WebSearch", "Generator")
+        workflow.add_conditional_edges(
+            "WebSearch",
+            self._route_after_websearch,
+            {"fallback": "Fallback", "generator": "Generator"},
+        )
         workflow.add_edge("Generator", END)
         workflow.add_edge("Fallback", END)
 
@@ -372,7 +389,10 @@ class AgenticRAG:
                 "last_mcp_tool": "none",
                 "last_route": "none",
             },
-            config={"configurable": {"thread_id": thread_id}, "recursion_limit": 40},
+            config={
+                "configurable": {"thread_id": thread_id},
+                "recursion_limit": self.recursion_limit,
+            },
         )
         tool_name = result.get("last_mcp_tool", "none")
         route_name = result.get("last_route", "none")

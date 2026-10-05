@@ -1,9 +1,8 @@
 from mcp.server.fastmcp import FastMCP #for hosting the MCP server
 
 from prod_assistant.retriever.retrieval import Retriever
-from langchain_community.tools import DuckDuckGoSearchRun
+from ddgs import DDGS
 
-from prod_assistant.evaluation.ragas_eval import evaluate_response_relevancy_async
 import os
 import re
 from collections import defaultdict
@@ -13,12 +12,11 @@ MCP_HOST = os.getenv("MCP_HOST", "127.0.0.1")
 MCP_PORT = int(os.getenv("MCP_PORT", "8001"))
 mcp = FastMCP("hybrid_search", host=MCP_HOST, port=MCP_PORT)
 
-# Load retriever once
-retriever_obj = Retriever()
-retriever = retriever_obj.load_retriever()
+# Initialize the credential-backed retriever only when the local-search tool is used.
+# This keeps the MCP server (and its web-search tool) available when Astra credentials
+# have not been configured yet.
+retriever = None
 
-# LangChain DuckDuckGo tool
-duckduckgo = DuckDuckGoSearchRun()
 RELEVANCY_THRESHOLD = float(os.getenv("MCP_RELEVANCY_THRESHOLD", "0.35"))
 OVERLAP_THRESHOLD = float(os.getenv("MCP_OVERLAP_THRESHOLD", "0.15"))
 STOPWORDS = {
@@ -36,6 +34,24 @@ PARENT_CATEGORY_KEYS = {
     "kids art": {"kids", "art", "color", "crayon", "paint", "craft"},
     "beauty": {"sunscreen", "spf", "cream", "serum", "face wash", "moisturizer"},
 }
+
+
+def _get_retriever():
+    global retriever
+    if retriever is None:
+        retriever = Retriever().load_retriever()
+    return retriever
+
+
+def _run_web_search(query: str) -> str:
+    results = DDGS().text(query, max_results=5)
+    blocks = []
+    for item in results:
+        title = (item.get("title") or "Untitled result").strip()
+        url = (item.get("href") or item.get("url") or "").strip()
+        body = (item.get("body") or "").strip()
+        blocks.append(f"{title}\n{url}\n{body}".strip())
+    return "\n\n".join(blocks) if blocks else "No web results found."
 
 
 def _map_parent_from_source_query(raw_category: str) -> str:
@@ -174,7 +190,7 @@ def _filter_product_blocks_by_query(query: str, context: str) -> str:
 async def get_product_info(query: str) -> str:
     """Retrieve product information for a given query from local retriever."""
     try:
-        docs = retriever.invoke(query)
+        docs = _get_retriever().invoke(query)
         context = format_docs(docs)
         if not context.strip():
             return "No local results found."
@@ -198,6 +214,10 @@ async def get_product_info(query: str) -> str:
                 return f"No local results found for exact model(s): {', '.join(missing_models)}."
 
         retrieved_contexts = [chunk for chunk in context.split("\n\n---\n\n") if chunk.strip()]
+        # RAGAS uses external model calls and is intentionally loaded only after
+        # deterministic product/category checks pass.
+        from prod_assistant.evaluation.ragas_eval import evaluate_response_relevancy_async
+
         relevancy_score = await evaluate_response_relevancy_async(
             query=query,
             response=context,
@@ -215,7 +235,7 @@ async def get_product_info(query: str) -> str:
 async def web_search(query: str) -> str:
     """Search the web using DuckDuckGo if retriever has no results."""
     try:
-        return duckduckgo.run(query)
+        return _run_web_search(query)
     except Exception as e:
         return f"Error during web search: {str(e)}"
 

@@ -30,6 +30,18 @@ def test_index_route_returns_200_and_v1_is_not_exposed():
     assert client.get("/v1").status_code == 404
 
 
+def test_health_reports_configuration_without_exposing_secret_values(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-only-secret")
+    router_main = _load_router_with_stubbed_agent()
+    response = TestClient(router_main.app).get("/health")
+    payload = response.json()
+    assert response.status_code == 200
+    assert payload["status"] == "ok"
+    assert payload["llm_configured"] is True
+    assert "test-only-secret" not in response.text
+
+
 def test_get_endpoint_sets_cookie_and_returns_agent_text():
     router_main = _load_router_with_stubbed_agent()
     client = TestClient(router_main.app)

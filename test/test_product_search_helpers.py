@@ -17,10 +17,6 @@ def _load_product_search_server_with_stubs():
     async def dummy_relevancy(*args, **kwargs):
         return 1.0
 
-    class DummyDDG:
-        def run(self, query):
-            return f"web:{query}"
-
     class DummyMCP:
         def __init__(self, *args, **kwargs):
             pass
@@ -41,10 +37,6 @@ def _load_product_search_server_with_stubs():
     fake_eval = types.ModuleType("prod_assistant.evaluation.ragas_eval")
     fake_eval.evaluate_response_relevancy_async = dummy_relevancy
     sys.modules["prod_assistant.evaluation.ragas_eval"] = fake_eval
-
-    fake_tools = types.ModuleType("langchain_community.tools")
-    fake_tools.DuckDuckGoSearchRun = DummyDDG
-    sys.modules["langchain_community.tools"] = fake_tools
 
     fake_fastmcp = types.ModuleType("mcp.server.fastmcp")
     fake_fastmcp.FastMCP = DummyMCP
@@ -87,13 +79,14 @@ def test_format_docs_groups_and_dedupes_reviews():
 
 def test_get_product_info_returns_no_local_when_no_docs():
     mod = _load_product_search_server_with_stubs()
-    mod.retriever.invoke = lambda q: []
+    mod.retriever = SimpleNamespace(invoke=lambda q: [])
     result = asyncio.run(mod.get_product_info("price of phone"))
     assert result == "No local results found."
 
 
 def test_web_search_uses_duckduckgo_stub():
     mod = _load_product_search_server_with_stubs()
+    mod._run_web_search = lambda query: f"web:{query}"
     result = asyncio.run(mod.web_search("asus vivobook reviews"))
     assert result == "web:asus vivobook reviews"
 

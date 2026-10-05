@@ -57,14 +57,13 @@ if st.button("🚀 Start Scraping"):
                 max_products=int(max_products),
                 review_count=int(review_count),
                 output_csv=output_path,
-                chrome_version_main=145,
                 headless=False,
                 retries=2
             )
 
         else:
             st.info("🔍 Running single query scraping.....")
-            scraper = FlipkartScraper(output_dir="data", chrome_version_main=145, headless=False)
+            scraper = FlipkartScraper(output_dir="data", headless=False)
 
             final_data = scraper.scrape_flipkart_products(
                 queries[0],

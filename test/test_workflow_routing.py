@@ -55,6 +55,18 @@ def test_grade_documents_goes_websearch_when_no_local():
     assert agent._grade_documents(state) == "websearch"
 
 
+def test_grade_documents_goes_websearch_when_retriever_is_unconfigured():
+    agent = _build_agent()
+    state = {
+        "messages": [
+            HumanMessage(content="price of google pixel 10"),
+            AIMessage(content="Error retrieving product info: missing Astra settings"),
+        ],
+        "rewrite_count": 0,
+    }
+    assert agent._grade_documents(state) == "websearch"
+
+
 def test_grade_documents_goes_websearch_on_rewrite_limit():
     agent = _build_agent()
     state = {
@@ -71,3 +83,11 @@ def test_followup_pronoun_query_is_detected():
     agent = _build_agent()
     assert agent._is_followup_query("price for it?") is True
     assert agent._is_followup_query("reviews for that") is True
+
+
+def test_web_search_error_routes_to_fallback():
+    agent = _build_agent()
+    error_state = {"messages": [AIMessage(content="Error during web search: network unavailable")]}
+    result_state = {"messages": [AIMessage(content="Result title\nhttps://example.com\nSummary")]}
+    assert agent._route_after_websearch(error_state) == "fallback"
+    assert agent._route_after_websearch(result_state) == "generator"

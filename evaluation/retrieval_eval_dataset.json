@@ -1,0 +1,27 @@
+[
+  {
+    "id": "sensitive-skin-sunscreen",
+    "category": "beauty",
+    "question": "Which sunscreen in the review collection appears suitable for sensitive skin, and what trade-offs do reviewers mention?"
+  },
+  {
+    "id": "wireless-mouse-value",
+    "category": "computer-accessory",
+    "question": "What do reviewers say about the wireless mouse's comfort, controls, battery, and value?"
+  },
+  {
+    "id": "skincare-comparison",
+    "category": "beauty",
+    "question": "How do the reviewed moisturizer and face serums compare for sensitive or acne-prone skin?"
+  },
+  {
+    "id": "accessory-comparison",
+    "category": "cross-category",
+    "question": "Which reviewed accessory among the earbuds, smartwatch, and wireless keyboards has the strongest supporting customer evidence?"
+  },
+  {
+    "id": "insufficient-evidence",
+    "category": "negative-control",
+    "question": "What do the stored reviews say about a product model that is not present in the collection?"
+  }
+]

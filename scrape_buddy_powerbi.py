@@ -80,7 +80,7 @@ if st.button("Start Scraping"):
     if not queries:
         st.warning("Please enter at least one product query.")
     else:
-        scraper = FlipkartScraper(output_dir="data", chrome_version_main=145, headless=False)
+        scraper = FlipkartScraper(output_dir="data", headless=False)
         run_id = f"run-{uuid4().hex}"
         scrape_timestamp_utc = datetime.now(timezone.utc).isoformat()
 

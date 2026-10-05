@@ -1,41 +1,43 @@
-# Python-generated files
+# Python caches and build outputs
 __pycache__/
-*.py[oc]
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
 
-# Virtual environments
-.venv
+# Local environments and credentials
+.venv/
+venv/
 .env
-
-src_experiment/
-logs/
-scripts/
-debug*
-scrapper_ui*.py
-
-notebook/
+.env.*
+!.env.example
 google_cred/
-*.md
-uv.lock
-*.tar
-*.tar.gz
+*.pem
+*.key
 
-data_scrapper_ss.py
-data_scrapper_multi.py
-data_scrapper.py
-
+# Runtime data and generated output
 data/
-generation_workflow.py
-
-/src/prod_assistant/workflow/agentic_rag_with_mcp.py
-/src/prod_assistant/workflow/agentic_rag_workflow.py
-
+logs/
+reports/
+*.db
+*.sqlite*
+*.log
+*.csv
 *.tar
 *.tar.gz
 
-reports/
-chat.html
-docs/
+# Browser and editor artifacts
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local experiments that are not part of the application
+src_experiment/
+notebook/
+debug*
+uv.lock

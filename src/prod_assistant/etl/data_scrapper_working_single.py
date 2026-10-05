@@ -86,7 +86,7 @@ def _looks_like_flipkart_soft_404(html: str) -> bool:
 
 # ----------------- Browser helpers -----------------
 
-def _make_driver(version_main: int = 145, headless: bool = False) -> uc.Chrome:
+def _make_driver(version_main: Optional[int] = None, headless: bool = False) -> uc.Chrome:
     options = uc.ChromeOptions()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -94,7 +94,8 @@ def _make_driver(version_main: int = 145, headless: bool = False) -> uc.Chrome:
     # options.add_argument("--disable-gpu")  # optional
     if headless:
         options.add_argument("--headless=new")
-    return uc.Chrome(options=options, version_main=version_main, use_subprocess=True)
+    kwargs = {"version_main": version_main} if version_main is not None else {}
+    return uc.Chrome(options=options, use_subprocess=True, **kwargs)
 
 
 def _close_popups(driver, timeout: float = 2.0) -> None:
@@ -251,9 +252,19 @@ class ProductRow:
 # ----------------- Scraper -----------------
 
 class FlipkartScraper:
-    def __init__(self, output_dir: str = "data", chrome_version_main: int = 145, headless: bool = False):
+    def __init__(
+        self,
+        output_dir: str = "data",
+        chrome_version_main: Optional[int] = None,
+        headless: bool = False,
+    ):
         self.output_dir = output_dir
-        self.chrome_version_main = chrome_version_main
+        configured_version = (os.getenv("CHROME_VERSION_MAIN") or "").strip()
+        self.chrome_version_main = (
+            chrome_version_main
+            if chrome_version_main is not None
+            else (int(configured_version) if configured_version else None)
+        )
         self.headless = headless
         os.makedirs(self.output_dir, exist_ok=True)
 
@@ -474,7 +485,7 @@ class FlipkartScraper:
 
 
 if __name__ == "__main__":
-    scraper = FlipkartScraper(output_dir="data", chrome_version_main=145, headless=False)
+    scraper = FlipkartScraper(output_dir="data", headless=False)
     rows = scraper.scrape_flipkart_products("gaming laptop", max_products=4, review_count=5)
     out = scraper.save_to_csv(rows, "data/product_reviews.csv")
     print("Saved:", out)

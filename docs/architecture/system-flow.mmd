@@ -1,0 +1,27 @@
+flowchart LR
+    subgraph Acquisition[Data acquisition]
+        ST[Streamlit scraper UI] --> SE[Selenium + BeautifulSoup]
+        SE --> CSV[(Base and history CSV files)]
+    end
+
+    subgraph Knowledge[Processing and retrieval]
+        CSV --> CL[Schema checks, cleanup, review splitting]
+        CL --> GE[Google embeddings]
+        GE --> AS[(Astra DB vector collection)]
+    end
+
+    subgraph Application[Assistant application]
+        UI[FastAPI + Jinja web UI] --> LG[LangGraph workflow]
+        LG --> MEM[In-process conversation memory]
+        LG --> MC[MCP client]
+        MC --> MS[FastMCP tool server]
+        MS --> RT[Product retrieval tool]
+        RT --> AS
+        RT --> RG[RAGAS response-relevancy gate]
+        MS --> WS[DuckDuckGo web-search tool]
+        RG --> LG
+        WS --> LG
+        LG --> LLM[Configured chat model]
+        LLM --> UI
+        UI --> SQ[(SQLite chat history)]
+    end

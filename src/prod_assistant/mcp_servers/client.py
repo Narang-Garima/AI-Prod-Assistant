@@ -1,15 +1,15 @@
 import asyncio
+from pathlib import Path
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
 import sys
 
 async def main():
+    server_script = Path(__file__).resolve().with_name("product_search_server.py")
     client = MultiServerMCPClient({
         "hybrid_search": {   # server name
             "command": sys.executable,
-            "args": [
-                r"C:\Users\KrishnaDasaNuDasi\AI-Prod-Assistant\src\prod_assistant\mcp_servers\product_search_server.py"
-            ],  # absolute path
+            "args": [str(server_script)],
             "transport": "stdio",
         }
     })

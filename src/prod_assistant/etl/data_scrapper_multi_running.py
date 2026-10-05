@@ -2,7 +2,7 @@
 # FINAL STABLE VERSION — NO THREADING, NO ERRORS, ONE CSV
 
 import time
-from typing import List, Dict
+from typing import List, Optional
 
 from prod_assistant.etl.data_scrapper_working_single import FlipkartScraper
 
@@ -12,7 +12,7 @@ def scrape_multiple_products(
         max_products: int = 2,
         review_count: int = 3,
         output_csv: str = "data/multi_output.csv",
-        chrome_version_main: int = 145,
+        chrome_version_main: Optional[int] = None,
         headless: bool = False,
         retries: int = 2,
 ):
@@ -33,7 +33,7 @@ def scrape_multiple_products(
     all_rows = []
 
     for q in queries:
-        print(f"\n🔍 Scraping query: {q}")
+        print(f"\nScraping query: {q}")
 
         for attempt in range(1, retries + 1):
             try:
@@ -43,23 +43,23 @@ def scrape_multiple_products(
                     review_count=review_count
                 )
 
-                print(f"   ✔ Completed '{q}' → {len(rows)} rows")
+                print(f"   Completed '{q}': {len(rows)} rows")
                 all_rows.extend(rows)
                 break
 
             except Exception as e:
-                print(f"   ❌ Error scraping '{q}' (Attempt {attempt}/{retries}) → {e}")
+                print(f"   Error scraping '{q}' (attempt {attempt}/{retries}): {e}")
                 time.sleep(1)
 
                 if attempt == retries:
-                    print(f"   💀 Giving up on '{q}'")
+                    print(f"   Giving up on '{q}'")
 
     # Save one final CSV
     scraper.save_to_csv(all_rows, output_csv)
 
-    print("\n🎉 MULTI-SCRAPING COMPLETE")
-    print(f"📁 Saved CSV: {output_csv}")
-    print(f"🔢 Total rows: {len(all_rows)}")
+    print("\nMULTI-SCRAPING COMPLETE")
+    print(f"Saved CSV: {output_csv}")
+    print(f"Total rows: {len(all_rows)}")
 
     return all_rows
 
@@ -81,7 +81,6 @@ if __name__ == "__main__":
         max_products=2,
         review_count=3,
         output_csv="data/multi_output.csv",
-        chrome_version_main=145,
         headless=False,
         retries=2,
     )
