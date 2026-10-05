@@ -217,7 +217,7 @@ I also ran a real product question through FastAPI, LangGraph, the MCP `get_prod
 
 Good next steps would be evaluation thresholds and regression tracking, cited web results, a durable checkpointer, provider-independent embeddings, and deployment validation. Those are roadmap items, not current features.
 
-## Portfolio talking points
+## Summarize
 
 - I designed the full path from review acquisition and data cleaning to retrieval, RAG orchestration, tools, API, and UI.
 - I used MCP to isolate the retrieval and web-search capabilities behind a small, testable tool interface.
