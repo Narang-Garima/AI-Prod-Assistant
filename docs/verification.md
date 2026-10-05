@@ -206,7 +206,7 @@ Secret-pattern scan
 Result: 0 findings outside ignored runtime directories
 ```
 
-## Scope I present in interviews
+## Scope
 
 I present ShopBuddy as a local applied-GenAI product assistant that connects acquisition, preprocessing, vector retrieval, agent routing, MCP tools, API/UI delivery, and evaluation.
 
